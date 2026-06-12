@@ -1,5 +1,21 @@
 /notes
 
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.pdf
+*.run.xml
+*.synctex.gz
+*.toc
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

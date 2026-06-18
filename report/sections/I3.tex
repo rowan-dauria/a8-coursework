@@ -1,0 +1,58 @@
+\subsection{I.3 Improving on the Baseline}
+
+\paragraph{Motivation and hypothesis.}
+\placeholder{Describe the principled modification(s), the lecture theory motivating them, and the prediction before seeing results.}
+
+\paragraph{Controlled-comparison design.}
+\noindent
+The main controlled comparison uses the same GSM8K test split, greedy decoding, seed-42 ordering, and full 1319-example evaluation for the base model, a long K=2 run, a matched K=8 run, and the K=8 new-reward run. Uncertainty is estimated by non-parametric bootstrap over the 1319 held-out prompts with 10,000 resamples and seed 42. This table is separate from the I.1 reproduction table: I.1 reports the original default 3364-step baseline run, while Table~\ref{tab:controlled-comparison} uses matched full-test eval dumps in \path{tpu-2026-fork/analysis/} for the robustness comparison.
+
+\begin{table}[htbp]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}L{0.17\linewidth}L{0.22\linewidth}L{0.08\linewidth}L{0.09\linewidth}L{0.13\linewidth}L{0.13\linewidth}@{}}
+\toprule
+Run & Modification & Seed & Steps & Accuracy & 95\% bootstrap CI \\
+\midrule
+Base \texttt{gemma-3-1b-it} & no fine-tuning & 42 & -- & 625/1319 = 47.38\% & [44.81\%, 50.11\%] \\
+K=2 LoRA & default reward, matched long run & 42 & 6516 & 0/1319 = 0.00\% & [0.00\%, 0.00\%] \\
+K=8 LoRA & group size $K:2\to8$, default reward & 42 & 6516 & 739/1319 = 56.03\% & [53.45\%, 58.76\%] \\
+K=8 new reward & $K=8$ plus graded correctness-heavy reward & 42 & 5864 & 772/1319 = 58.53\% & [55.88\%, 61.18\%] \\
+$\beta=10^{-6}$ LoRA & KL coefficient nearly off, K=2 & 42 & 3364 & \placeholder{run full-test bootstrap eval} & \placeholder{add CI} \\
+$\beta=0.32$ LoRA & 4$\times$ stronger KL coefficient, K=2 & 42 & 3364 & \placeholder{run full-test bootstrap eval} & \placeholder{add CI} \\
+\bottomrule
+\end{tabular}
+\caption{Full-test GSM8K comparison with bootstrap uncertainty. The two $\beta$ rows are intentionally left as TODOs because training completed, but the standardized full-test bootstrap evaluations are still needed before beta can be used as a robust headline result.}
+\label{tab:controlled-comparison}
+\end{table}
+
+\noindent
+The paired full-test deltas make the main pattern clearer than the raw accuracies alone. K=8 improves over the base model by $+8.64$ percentage points with a paired-bootstrap 95\% CI of $[+5.91,+11.37]$. K=8 with the new reward improves over the base by $+11.14$ points, CI $[+8.42,+13.87]$. However, the incremental gain of the new reward over the ordinary K=8 run is only $+2.50$ points, with CI $[-0.08,+5.08]$, so I treat the reward result as suggestive rather than cleanly separated from the K=8 baseline. The robust claim is that increasing K stabilises training and that the new reward does not destroy this gain; a stronger reward-specific claim would require another seed or a clearly separated paired CI.
+
+\paragraph{Outstanding robustness gap.}
+\placeholder{Run standardized full 1319-example greedy evaluations and bootstrap CIs for the completed $\beta=10^{-6}$ and $\beta=0.32$ checkpoints. Add the resulting accuracy, partial, format, and paired deltas versus K=2/default before making beta a headline conclusion.}
+
+\begin{figure}[htbp]
+\figplaceholder{insert overlay of baseline and variant mean-reward curves}
+\caption{Mean reward comparison across runs.}
+\label{fig:reward-comparison}
+\end{figure}
+
+\begin{figure}[htbp]
+\figplaceholder{insert overlay of baseline and variant KL curves}
+\caption{Reference-KL comparison across runs.}
+\label{fig:kl-comparison}
+\end{figure}
+
+\begin{figure}[htbp]
+\figplaceholder{insert one diagnostic plot: advantage distribution, degenerate-group fraction, response length/entropy, or KL vs.\ accuracy}
+\caption{Diagnostic plot for a GRPO failure mode.}
+\label{fig:diagnostic}
+\end{figure}
+
+\paragraph{Findings.}
+\placeholder{Summarise what improved, what degraded, and whether the results support the hypothesis. Include honest negative results if applicable.}
+
+\paragraph{Theory connection.}
+\placeholder{Connect the empirical pattern to GRPO theory: within-group reward variance, effective sample size, KL budget, clipping, reward shaping, or optimisation/capacity. Mention any contradicted prediction and your diagnosis.}

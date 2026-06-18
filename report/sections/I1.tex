@@ -1,0 +1,66 @@
+\subsection{I.1 Reproducing the Baseline}
+
+\noindent
+I reproduced the baseline write-up from the completed W\&B run \texttt{jgs4c6kl} and the evaluation logs already recorded for the same checkpoint. I did not re-run \texttt{evaluate.py} during this pass because the TPU was occupied by a live training run. The resulting numbers should therefore be read as the run's recorded evaluation results rather than a fresh local re-evaluation.
+
+\paragraph{Run identity.}
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}L{0.32\linewidth}L{0.58\linewidth}@{}}
+\toprule
+Item & Value \\
+\midrule
+Code commit & \texttt{7e696c428687bc083604690f5f51009da6abb6d9} on branch \texttt{baseline-fls} \\
+Config & Default baseline config, with \texttt{NUM\_GENERATIONS=2}; seed 42; v6e-1 TPU \\
+Run source & W\&B run \href{https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/jgs4c6kl}{\texttt{jgs4c6kl}}; exported history in \path{wandb_scripts/data/baseline_jgs4c6kl_*} \\
+Timing & Started 2026-06-08 18:17:09 UTC; ended 2026-06-08 22:58:47 UTC; clean finish with exit code 0 \\
+Wall-clock time & 4h 41m 36s from W\&B \texttt{\_runtime}=16,896s, consistent with the recorded 4h 41m 38s \\
+GRPO steps completed & 3364, i.e.\ the full configured schedule after the 0.9 multiplier: $3738 \times 0.9 = 3364$ \\
+Checkpoint evaluated & LoRA checkpoint at \path{/tmp/content/ckpts/actor/3364}; W\&B artifact \texttt{baseline\_seed42\_checkpoint:latest} \\
+Evaluation protocol & Official GSM8K test split via TFDS; seed-42 shuffle; first 64 examples; greedy decoding; micro-batch size 1 \\
+\bottomrule
+\end{tabular}
+\caption{Baseline run metadata.}
+\label{tab:baseline-metadata}
+\end{table}
+
+\noindent
+The key baseline hyperparameters were LoRA \texttt{RANK=ALPHA=64}, KL penalty \texttt{BETA=0.08}, group size \texttt{NUM\_GENERATIONS=2}, learning rate \texttt{3e-6}, sampling temperature \texttt{0.9}, and \texttt{MAX\_GRAD\_NORM=0.1}. Thus the run corresponds to one epoch over the 90\% training split, with the remaining 10\% used for in-loop evaluation.
+
+\paragraph{Baseline patches.}
+The baseline did not run as shipped because TFDS/GSM8K loading failed with a protobuf \texttt{FieldDescriptor.label} error caused by a \texttt{protobuf} 7.x and \texttt{tensorflow-datasets} 4.9.9 compatibility issue. The accepted fix was to pin \texttt{protobuf==6.31.1} in \texttt{requirements.txt}; this changed only dependency plumbing, not the model, reward functions, data split, or training hyperparameters. For plotting this report, I also installed \texttt{matplotlib} and used a portable W\&B-history plotting script, because the team's original plotting script expected a TensorBoard event file on a teammate's machine.
+
+\paragraph{Accuracy.}
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}L{0.23\linewidth}L{0.14\linewidth}L{0.08\linewidth}L{0.14\linewidth}L{0.12\linewidth}L{0.11\linewidth}@{}}
+\toprule
+Model/checkpoint & Split & Seed & Exact accuracy & Partial $\pm10\%$ & Format \\
+\midrule
+Base \texttt{gemma-3-1b-it} & GSM8K test, first 64 & 42 & 33/64 = 51.56\% & 53.12\% & 6.25\% \\
+Baseline LoRA GRPO, step 3364 & GSM8K test, first 64 & 42 & 2/64 = 3.12\% & 6.25\% & 12.50\% \\
+\bottomrule
+\end{tabular}
+\caption{Base-model and baseline-checkpoint GSM8K evaluation. Exact accuracy is the required metric; partial and format scores are diagnostic reward components from the recorded eval logs.}
+\label{tab:baseline-accuracy}
+\end{table}
+
+\noindent
+The LoRA checkpoint is substantially worse than the base model. The retained-checkpoint sweep showed monotone degradation from 28.12\% at step 2000, to 20.31\% at step 2500, 6.25\% at step 3000, and 3.12\% at the final step 3364. I therefore treat this as a training or checkpoint-selection failure rather than a checkpoint-restore bug. The raw evaluation logs are \path{runs/2026-06-08_baseline_seed42/base_eval.log} and \path{runs/2026-06-08_baseline_seed42/lora_eval.log}.
+
+\begin{figure}[htbp]
+\optionalfigure{../tpu-2026-fork/report_assets/baseline_mean_reward_curve.pdf}{insert baseline mean reward curve, $\bar r$ vs.\ GRPO step}
+\caption{Baseline mean reward $\bar r$ during GRPO training. The bold curve is a 64-step centred moving average; the faint trace behind it is the raw per-step reward.}
+\label{fig:baseline-reward}
+\end{figure}
+
+\begin{figure}[htbp]
+\optionalfigure{../tpu-2026-fork/report_assets/baseline_kl_curve.pdf}{insert baseline KL curve, $\mathrm{KL}(\pi_\theta\|\pi_{\mathrm{ref}})$ vs.\ GRPO step}
+\caption{Baseline reference-KL during GRPO training.}
+\label{fig:baseline-kl}
+\end{figure}
+
+\noindent
+Both curves were regenerated from the W\&B history CSV using \path{analysis/plot_baseline_from_wandb.py}; the final-step values match the team's TensorBoard-derived assets, with reward 1.5625 and KL 0.5213. The reward rises early, peaking around 1.5 between roughly steps 400 and 900, then declines toward zero or negative values by the end. The reference KL remains around 0.5 for much of training, with spikes near steps 2500 and 3300. This combination is consistent with the poor final checkpoint: the policy did learn reward-correlated behaviour early on, but the later training trajectory moved away from the base model without preserving GSM8K accuracy.

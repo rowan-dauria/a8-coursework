@@ -1,0 +1,25 @@
+\subsection{I.2 Understanding the Baseline}
+
+\paragraph{Policies in the LoRA setup.}
+\noindent
+All three policies share the same frozen Gemma-3-1B base weights. The trainable policy $\pi_\theta$ is the actor created by wrapping the base model with LoRA adapters in \path{scripts/model.py}; only those LoRA matrices are updated by the actor optimiser, while the pretrained weights remain fixed. The reference policy $\pi_{\mathrm{ref}}$ is the frozen base model passed to \texttt{RLCluster} as \texttt{reference}. In LoRA terms it is the zero-adapter policy, so it supplies the KL anchor but carries no trainable parameters. The old policy $\pi_{\mathrm{old}}$ is the actor snapshot that generated the current group of rollouts. Since the baseline uses \texttt{NUM\_ITERATIONS=1}, Tunix does not need to run a separate old-actor forward pass: inside the loss, the old log-probabilities are the current per-token log-probabilities with \texttt{stop\_gradient}. Conceptually, though, $\pi_{\mathrm{old}}$ is still the fixed rollout distribution for the sampled completions during that update.
+
+\paragraph{Group size and advantage estimator.}
+\noindent
+The group size is $K=2$, set by \texttt{NUM\_GENERATIONS = 2} in \path{scripts/config.py}. \texttt{train.py} passes this as \texttt{GRPOConfig(num\_generations=NUM\_GENERATIONS)}. With the default \texttt{advantage\_estimator="grpo"}, Tunix computes the standard group-normalised estimator
+\[
+  \hat A_i = \frac{r_i-\bar r_q}{s_q+10^{-6}},
+\]
+where $\bar r_q$ and $s_q$ are the mean and sample standard deviation of the $K$ rewards for the same prompt. This is the ordinary group-mean GRPO baseline, not the leave-one-out estimator. Tunix does have an \texttt{rloo} estimator, but this baseline does not select it.
+
+\paragraph{Reward decomposition.}
+\noindent
+\path{scripts/rewards.py} sums four programmatic rewards. \path{match_format_exactly} and \path{match_format_approximately} are format-shaping terms: they reward producing the requested \path{<reasoning>} and \path{<answer>} tags, independently of whether the arithmetic is right. \path{check_answer} is the main task-correctness reward, because it extracts the bracketed answer and gives the largest positive reward for the exact GSM8K number, with smaller partial-credit or negative values for approximate or invalid answers. \path{check_numbers} is a fallback numeric shaping term: it gives signal for placing some correct number after \path{<answer>} even if the full template is not perfect. If training used only exact correctness early on, most sampled completions for a prompt would receive the same reward, usually zero. Then the within-group standard deviation $s_q$ would be near zero, so the normalised advantages would vanish or become numerically uninformative. The shaping terms make it more likely that two siblings in the same group differ before the model can solve the maths.
+
+\paragraph{Clipped surrogate.}
+\noindent
+The PPO-style surrogate is implemented in Tunix's GRPO policy loss, imported by \texttt{GRPOLearner} through the function registry and selected by \texttt{policy\_loss\_fn="grpo"}. In the source this is the \texttt{grpo\_loss\_fn} in \path{tunix/rl/algo_core.py}: it forms an importance ratio from the new and old per-token log-probabilities, then uses
+\[
+  \max\{-\hat A\,\rho,\;-\hat A\,\mathrm{clip}(\rho,1-\varepsilon,1+\varepsilon)\}
+\]
+because the code minimises a loss rather than maximises the lecture objective. The coursework config sets \texttt{EPSILON = 0.2}, so the ratio is clipped to $[0.8,1.2]$ in the symmetric baseline. The main implementation difference from the simplest lecture notation is granularity: Tunix computes log-probability ratios on completion tokens and aggregates with \texttt{loss\_agg\_mode="sequence-mean-token-mean"}, while the lecture formula is usually written as a single sequence-level ratio. The same scalar group advantage is broadcast over the completion tokens.

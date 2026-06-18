@@ -19,7 +19,7 @@ The objective of the TPU project is to train a small instruction-tuned model (`g
 > **Active Environment & TPU VM Context:**
 > * **Active TPU VM Name:** `dakolo` (University-provided)
 > * **Project ID:** `tpu-2026`
-> * **Zone:** `us-east5-b`
+> * **Zone:** `us-east5-a`
 > * **Note on Previous VMs:** The VM named `rowan` on project `a8-coursework` was a personal test VM and is no longer the active target. Use `dakolo` on project `tpu-2026` for active project runs unless specifically told to use Rowan's personal VM.
 
 ---

@@ -1,0 +1,345 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[]{hyperref}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!55!black,
+  citecolor=blue!55!black,
+  urlcolor=blue!55!black
+}
+
+\setlist[itemize]{leftmargin=*,itemsep=0.2em,topsep=0.2em}
+\setlist[enumerate]{leftmargin=*,itemsep=0.2em,topsep=0.2em}
+\setlength{\emergencystretch}{2em}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\newcommand{\placeholder}[1]{\textcolor{red!70!black}{\textbf{[TODO: #1]}}}
+\newcommand{\mathplaceholder}[1]{\text{\textcolor{red!70!black}{[TODO: #1]}}}
+\newcommand{\repo}{\href{https://TODO.gitlab.repo.url}{\texttt{TODO-GitLab-repository}}}
+\newcommand{\wandb}{\href{https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/jgs4c6kl}{\texttt{jgs4c6kl}}}
+\newcommand{\figplaceholder}[2][0.92\linewidth]{%
+  \begin{center}
+    \fbox{%
+      \begin{minipage}[c][0.22\textheight][c]{#1}
+        \centering
+        \placeholder{#2}
+      \end{minipage}
+    }
+  \end{center}
+}
+\newcommand{\optionalfigure}[3][0.92\linewidth]{%
+  \IfFileExists{#2}{%
+    \begin{center}
+      \includegraphics[width=#1]{#2}
+    \end{center}
+  }{%
+    \figplaceholder[#1]{#3}
+  }%
+}
+
+\title{Multi-Agent Systems and Agentic AI Practical Examination}
+\author{%
+  \placeholder{Your name} \\
+  Team members: \placeholder{names of practical-project team members}
+}
+\date{\placeholder{Submission date}}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\begin{tabular}{@{}L{0.28\linewidth}L{0.66\linewidth}@{}}
+\toprule
+GitLab repository & \repo \\
+Main training dashboard/logs & \wandb \\
+TPU VM & \texttt{dakolo}, project \texttt{tpu-2026}, zone \texttt{us-east5-a} \\
+Base model & \texttt{google/gemma-3-1b-it} \\
+Dataset & GSM8K test split; 64-example baseline reproduction and full 1319-example bootstrap comparisons \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+\textbf{Report boundaries.}
+Sections I.1--I.3 are my individual write-up of the jointly owned practical experiments.
+Section I.4 and Part II are individual work.
+\placeholder{Add one sentence acknowledging any AI assistance if required by local submission policy.}
+
+\tableofcontents
+
+\newpage
+
+\section{Part I: GRPO Finetuning of Gemma 3}
+
+\subsection{I.1 Reproducing the Baseline}
+
+\noindent
+I reproduced the baseline write-up from the completed W\&B run \texttt{jgs4c6kl} and the evaluation logs already recorded for the same checkpoint. I did not re-run \texttt{evaluate.py} during this pass because the TPU was occupied by a live training run. The resulting numbers should therefore be read as the run's recorded evaluation results rather than a fresh local re-evaluation.
+
+\paragraph{Run identity.}
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}L{0.32\linewidth}L{0.58\linewidth}@{}}
+\toprule
+Item & Value \\
+\midrule
+Code commit & \texttt{7e696c428687bc083604690f5f51009da6abb6d9} on branch \texttt{baseline-fls} \\
+Config & Default baseline config, with \texttt{NUM\_GENERATIONS=2}; seed 42; v6e-1 TPU \\
+Run source & W\&B run \href{https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/jgs4c6kl}{\texttt{jgs4c6kl}}; exported history in \path{wandb_scripts/data/baseline_jgs4c6kl_*} \\
+Timing & Started 2026-06-08 18:17:09 UTC; ended 2026-06-08 22:58:47 UTC; clean finish with exit code 0 \\
+Wall-clock time & 4h 41m 36s from W\&B \texttt{\_runtime}=16,896s, consistent with the recorded 4h 41m 38s \\
+GRPO steps completed & 3364, i.e.\ the full configured schedule after the 0.9 multiplier: $3738 \times 0.9 = 3364$ \\
+Checkpoint evaluated & LoRA checkpoint at \path{/tmp/content/ckpts/actor/3364}; W\&B artifact \texttt{baseline\_seed42\_checkpoint:latest} \\
+Evaluation protocol & Official GSM8K test split via TFDS; seed-42 shuffle; first 64 examples; greedy decoding; micro-batch size 1 \\
+\bottomrule
+\end{tabular}
+\caption{Baseline run metadata.}
+\label{tab:baseline-metadata}
+\end{table}
+
+\noindent
+The key baseline hyperparameters were LoRA \texttt{RANK=ALPHA=64}, KL penalty \texttt{BETA=0.08}, group size \texttt{NUM\_GENERATIONS=2}, learning rate \texttt{3e-6}, sampling temperature \texttt{0.9}, and \texttt{MAX\_GRAD\_NORM=0.1}. Thus the run corresponds to one epoch over the 90\% training split, with the remaining 10\% used for in-loop evaluation.
+
+\paragraph{Baseline patches.}
+The baseline did not run as shipped because TFDS/GSM8K loading failed with a protobuf \texttt{FieldDescriptor.label} error caused by a \texttt{protobuf} 7.x and \texttt{tensorflow-datasets} 4.9.9 compatibility issue. The accepted fix was to pin \texttt{protobuf==6.31.1} in \texttt{requirements.txt}; this changed only dependency plumbing, not the model, reward functions, data split, or training hyperparameters. For plotting this report, I also installed \texttt{matplotlib} and used a portable W\&B-history plotting script, because the team's original plotting script expected a TensorBoard event file on a teammate's machine.
+
+\paragraph{Accuracy.}
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}L{0.23\linewidth}L{0.14\linewidth}L{0.08\linewidth}L{0.14\linewidth}L{0.12\linewidth}L{0.11\linewidth}@{}}
+\toprule
+Model/checkpoint & Split & Seed & Exact accuracy & Partial $\pm10\%$ & Format \\
+\midrule
+Base \texttt{gemma-3-1b-it} & GSM8K test, first 64 & 42 & 33/64 = 51.56\% & 53.12\% & 6.25\% \\
+Baseline LoRA GRPO, step 3364 & GSM8K test, first 64 & 42 & 2/64 = 3.12\% & 6.25\% & 12.50\% \\
+\bottomrule
+\end{tabular}
+\caption{Base-model and baseline-checkpoint GSM8K evaluation. Exact accuracy is the required metric; partial and format scores are diagnostic reward components from the recorded eval logs.}
+\label{tab:baseline-accuracy}
+\end{table}
+
+\noindent
+The LoRA checkpoint is substantially worse than the base model. The retained-checkpoint sweep showed monotone degradation from 28.12\% at step 2000, to 20.31\% at step 2500, 6.25\% at step 3000, and 3.12\% at the final step 3364. I therefore treat this as a training or checkpoint-selection failure rather than a checkpoint-restore bug. The raw evaluation logs are \path{runs/2026-06-08_baseline_seed42/base_eval.log} and \path{runs/2026-06-08_baseline_seed42/lora_eval.log}.
+
+\begin{figure}[htbp]
+\optionalfigure{../tpu-2026-fork/report_assets/rowan_repro/baseline_mean_reward_curve.pdf}{insert baseline mean reward curve, $\bar r$ vs.\ GRPO step}
+\caption{Baseline mean reward during GRPO training.}
+\label{fig:baseline-reward}
+\end{figure}
+
+\begin{figure}[htbp]
+\optionalfigure{../tpu-2026-fork/report_assets/rowan_repro/baseline_kl_curve.pdf}{insert baseline KL curve, $\mathrm{KL}(\pi_\theta\|\pi_{\mathrm{ref}})$ vs.\ GRPO step}
+\caption{Baseline reference-KL during GRPO training.}
+\label{fig:baseline-kl}
+\end{figure}
+
+\noindent
+Both curves were regenerated from the W\&B history CSV using \path{analysis/plot_baseline_from_wandb.py}; the final-step values match the team's TensorBoard-derived assets, with reward 1.5625 and KL 0.5213. The reward rises early, peaking around 1.5 between roughly steps 400 and 900, then declines toward zero or negative values by the end. The reference KL remains around 0.5 for much of training, with spikes near steps 2500 and 3300. This combination is consistent with the poor final checkpoint: the policy did learn reward-correlated behaviour early on, but the later training trajectory moved away from the base model without preserving GSM8K accuracy.
+
+\subsection{I.2 Understanding the Baseline}
+
+\paragraph{Policies in the LoRA setup.}
+\placeholder{Explain what $\pi_\theta$, $\pi_{\mathrm{old}}$, and $\pi_{\mathrm{ref}}$ are in this codebase, which adapter snapshot each corresponds to, and which parameters are trainable.}
+
+\paragraph{Group size and advantage estimator.}
+\placeholder{State the configured group size $K$, locate it in \texttt{scripts/config.py}, identify the Tunix advantage estimator, and say whether it is standard group-mean or leave-one-out.}
+
+\paragraph{Reward decomposition.}
+\placeholder{Map the reward terms in \texttt{scripts/rewards.py} into shaping rewards and true correctness rewards. Explain why correctness-only rewards can give near-zero within-group reward variance $\sigma_r$ early in training.}
+
+\paragraph{Clipped surrogate.}
+\placeholder{Locate the PPO-style clipped surrogate in Tunix, state the configured clip range $\varepsilon$, and note any difference from the lecture form, such as per-token rather than per-sequence ratios.}
+
+\subsection{I.3 Improving on the Baseline}
+
+\paragraph{Motivation and hypothesis.}
+\placeholder{Describe the principled modification(s), the lecture theory motivating them, and the prediction before seeing results.}
+
+\paragraph{Controlled-comparison design.}
+\noindent
+The main controlled comparison uses the same GSM8K test split, greedy decoding, seed-42 ordering, and full 1319-example evaluation for the base model, a long K=2 run, a matched K=8 run, and the K=8 new-reward run. Uncertainty is estimated by non-parametric bootstrap over the 1319 held-out prompts with 10,000 resamples and seed 42. This table is separate from the I.1 reproduction table: I.1 reports the original default 3364-step baseline run, while Table~\ref{tab:controlled-comparison} uses matched full-test eval dumps in \path{tpu-2026-fork/analysis/} for the robustness comparison.
+
+\begin{table}[htbp]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}L{0.17\linewidth}L{0.22\linewidth}L{0.08\linewidth}L{0.09\linewidth}L{0.13\linewidth}L{0.13\linewidth}@{}}
+\toprule
+Run & Modification & Seed & Steps & Accuracy & 95\% bootstrap CI \\
+\midrule
+Base \texttt{gemma-3-1b-it} & no fine-tuning & 42 & -- & 625/1319 = 47.38\% & [44.81\%, 50.11\%] \\
+K=2 LoRA & default reward, matched long run & 42 & 6516 & 0/1319 = 0.00\% & [0.00\%, 0.00\%] \\
+K=8 LoRA & group size $K:2\to8$, default reward & 42 & 6516 & 739/1319 = 56.03\% & [53.45\%, 58.76\%] \\
+K=8 new reward & $K=8$ plus graded correctness-heavy reward & 42 & 5864 & 772/1319 = 58.53\% & [55.88\%, 61.18\%] \\
+$\beta=10^{-6}$ LoRA & KL coefficient nearly off, K=2 & 42 & 3364 & \placeholder{run full-test bootstrap eval} & \placeholder{add CI} \\
+$\beta=0.32$ LoRA & 4$\times$ stronger KL coefficient, K=2 & 42 & 3364 & \placeholder{run full-test bootstrap eval} & \placeholder{add CI} \\
+\bottomrule
+\end{tabular}
+\caption{Full-test GSM8K comparison with bootstrap uncertainty. The two $\beta$ rows are intentionally left as TODOs because training completed, but the standardized full-test bootstrap evaluations are still needed before beta can be used as a robust headline result.}
+\label{tab:controlled-comparison}
+\end{table}
+
+\noindent
+The paired full-test deltas make the main pattern clearer than the raw accuracies alone. K=8 improves over the base model by $+8.64$ percentage points with a paired-bootstrap 95\% CI of $[+5.91,+11.37]$. K=8 with the new reward improves over the base by $+11.14$ points, CI $[+8.42,+13.87]$. However, the incremental gain of the new reward over the ordinary K=8 run is only $+2.50$ points, with CI $[-0.08,+5.08]$, so I treat the reward result as suggestive rather than cleanly separated from the K=8 baseline. The robust claim is that increasing K stabilises training and that the new reward does not destroy this gain; a stronger reward-specific claim would require another seed or a clearly separated paired CI.
+
+\paragraph{Outstanding robustness gap.}
+\placeholder{Run standardized full 1319-example greedy evaluations and bootstrap CIs for the completed $\beta=10^{-6}$ and $\beta=0.32$ checkpoints. Add the resulting accuracy, partial, format, and paired deltas versus K=2/default before making beta a headline conclusion.}
+
+\begin{figure}[htbp]
+\figplaceholder{insert overlay of baseline and variant mean-reward curves}
+\caption{Mean reward comparison across runs.}
+\label{fig:reward-comparison}
+\end{figure}
+
+\begin{figure}[htbp]
+\figplaceholder{insert overlay of baseline and variant KL curves}
+\caption{Reference-KL comparison across runs.}
+\label{fig:kl-comparison}
+\end{figure}
+
+\begin{figure}[htbp]
+\figplaceholder{insert one diagnostic plot: advantage distribution, degenerate-group fraction, response length/entropy, or KL vs.\ accuracy}
+\caption{Diagnostic plot for a GRPO failure mode.}
+\label{fig:diagnostic}
+\end{figure}
+
+\paragraph{Findings.}
+\placeholder{Summarise what improved, what degraded, and whether the results support the hypothesis. Include honest negative results if applicable.}
+
+\paragraph{Theory connection.}
+\placeholder{Connect the empirical pattern to GRPO theory: within-group reward variance, effective sample size, KL budget, clipping, reward shaping, or optimisation/capacity. Mention any contradicted prediction and your diagnosis.}
+
+\newpage
+
+\section{I.4 GRPO Theory}
+
+\subsection{Question 1: Group-Normalised Advantages}
+
+\paragraph{(i)}
+\placeholder{Compute $\mathbb{E}[X_i]$ and $\mathbb{E}[\hat g]$. Briefly explain why zero expectation in this fixed-action setup does not imply the actual policy gradient is zero.}
+
+\begin{align}
+\bar r &= \frac{1}{K}\sum_{j=1}^K r_j, &
+\hat A_i &= \frac{r_i-\bar r}{\sigma}, &
+X_i &= h_i\hat A_i .
+\end{align}
+
+\paragraph{(ii)}
+\placeholder{Identify the shared random term and compute $\operatorname{Cov}(X_i,X_j)$ for $i\ne j$ in terms of $h_i h_j^\top$. State the sign and intuition.}
+
+\paragraph{(iii)}
+\placeholder{Compute $\operatorname{Var}(\hat g)$, compare with the naive iid estimator, define $K_{\mathrm{eff}}$, and discuss large $K$ and aligned $h_i$.}
+
+\subsection{Question 2: KL-Regularised Policy Updates and Clipping}
+
+\paragraph{(i)}
+\placeholder{Derive the unique optimiser of the KL-regularised update and explain $\eta$ as a step size.}
+
+\begin{equation}
+\pi_{t+1}(a)
+= \mathplaceholder{closed-form expression in }\pi_t(a), A_t(a), \eta.
+\end{equation}
+
+\paragraph{(ii)}
+\placeholder{Show monotone improvement for exact advantages and identify one practical neural-network/GRPO condition where the guarantee fails.}
+
+\paragraph{(iii)}
+\placeholder{Describe the trust region induced by PPO clipping and contrast it with a joint KL constraint. State at least one qualitative difference.}
+
+\subsection{Question 3: Mixture Proposals and Importance Correction}
+
+\paragraph{(i)}
+\placeholder{Derive the importance-corrected estimator using samples from $\pi_{\mathrm{mix}}$ and give $w_i$.}
+
+\begin{equation}
+\pi_{\mathrm{mix}}(a\mid q)
+= (1-\alpha)\pi_{\mathrm{old}}(a\mid q)
++ \alpha\pi_{\mathrm{unif}}(a\mid q).
+\end{equation}
+
+\paragraph{(ii)}
+\placeholder{Verify the $\alpha\to0$ limit recovers standard GRPO for the same realised actions.}
+
+\paragraph{(iii.a)}
+\placeholder{Express $V^{\pi_{\mathrm{mix}}}(q)$ in terms of $V^{\pi_{\mathrm{old}}}(q)$ and $V^{\pi_{\mathrm{unif}}}(q)$.}
+
+\paragraph{(iii.b)}
+\placeholder{State whether weights alone correct the baseline shift, then derive the reweighted advantage needed for unbiasedness under $\pi_{\mathrm{old}}$.}
+
+\paragraph{(iv)}
+\placeholder{Compare variance against standard GRPO. Give one reward condition where uniform mixing increases advantage variance and one where it decreases it, with short mathematical arguments.}
+
+\paragraph{(v.a)}
+\placeholder{Explain the behaviour of $w_i=c^T$ as $T\to\infty$ and why $c<1$ is typical when $\alpha>0$.}
+
+\paragraph{(v.b)}
+\placeholder{Explain weight collapse and propose one concrete fix, including its trade-off.}
+
+\newpage
+
+\section{Part II: Adaptive Planning in \texttt{cmbagent\_lg}}
+
+\noindent
+Studied branch/commit:
+\href{https://github.com/borisbolliet/cmbagent_lg/tree/adaptive-planning}{\texttt{adaptive-planning}}
+at commit \texttt{\placeholder{exact commit hash}}.
+
+\subsection{II.1 Workflow Diagram}
+
+\begin{figure}[htbp]
+\figplaceholder[0.96\linewidth]{insert workflow diagram: LangGraph nodes, edges, conditional routing, and state fields}
+\caption{Adaptive-planning workflow in \texttt{cmbagent\_lg}. The diagram itself is excluded from the Part II page limit.}
+\label{fig:adaptive-planning-workflow}
+\end{figure}
+
+\paragraph{Walkthrough.}
+\placeholder{In at most half a page: explain the initial planner/reviewer loop, execution loop, adaptive-review trigger, what part of the remaining plan may change, what is held fixed, and why/how the loop terminates.}
+
+\subsection{II.2 Problems and Failure Modes}
+
+\paragraph{Problem 1: \placeholder{short name}.}
+\placeholder{Explain the issue, grounded in the implementation and lecture material on planning or closed-loop control.}
+
+\paragraph{Problem 2: \placeholder{short name}.}
+\placeholder{Explain the issue, grounded in the implementation and lecture material on planning or closed-loop control.}
+
+\paragraph{Problem 3: \placeholder{short name}.}
+\placeholder{Explain the issue, grounded in the implementation and lecture material on planning or closed-loop control.}
+
+\subsection{II.3 Proposed Improvements}
+
+\paragraph{Improvement 1: \placeholder{short name}.}
+\placeholder{State the concrete change, why it addresses the corresponding problem, and what it trades off.}
+
+\paragraph{Improvement 2: \placeholder{short name}.}
+\placeholder{State the concrete change, why it addresses the corresponding problem, and what it trades off.}
+
+\paragraph{Improvement 3: \placeholder{short name}.}
+\placeholder{State the concrete change, why it addresses the corresponding problem, and what it trades off.}
+
+\newpage
+
+\section*{References}
+\addcontentsline{toc}{section}{References}
+
+\begin{itemize}
+  \item Hu et al. (2021), ``LoRA: Low-Rank Adaptation of Large Language Models,'' \url{https://arxiv.org/abs/2106.09685}.
+  \item \placeholder{GRPO / PPO / Tunix references used in the write-up.}
+  \item \placeholder{Dataset card, W\&B runs, and any external code or papers cited.}
+\end{itemize}
+
+\appendix
+\section{Appendix: Extra Experimental Details}
+\placeholder{Optional: non-essential tables, extra plots, command logs, or failure notes. Do not put material essential to marking here.}
+
+\end{document}

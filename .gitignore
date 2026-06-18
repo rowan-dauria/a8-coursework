@@ -1,4 +1,5 @@
 /notes
+model-checkpoints/
 
 # LaTeX build artifacts
 *.aux

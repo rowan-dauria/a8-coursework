@@ -1,0 +1,55 @@
+{
+  "k2": {
+    "final_values": {
+      "kl": 0.0,
+      "mean_length": 0.0,
+      "reward_mean": -2.5
+    },
+    "max_step": 5864,
+    "n_points": {
+      "kl": 5864,
+      "mean_length": 5864,
+      "reward_mean": 5864
+    },
+    "name": "Baseline k=2 (5864)",
+    "run_id": "keh7f5es",
+    "source": "wandb",
+    "url": "https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/keh7f5es"
+  },
+  "k8": {
+    "final_values": {
+      "kl": 0.20049162209033966,
+      "mean_length": 305.25,
+      "reward_mean": 3.875
+    },
+    "max_step": 5864,
+    "n_points": {
+      "kl": 5864,
+      "mean_length": 5864,
+      "reward_mean": 5864
+    },
+    "phase_files": [
+      "model-checkpoints/m3xp6k97/tensorboard/grpo/events.out.tfevents.1781270315.t1v-n-f769470f-w-0",
+      "model-checkpoints/8k-baseline-6516-steps-rd/tensorboard/grpo/events.out.tfevents.1781397623.t1v-n-f769470f-w-0"
+    ],
+    "source": "tensorboard"
+  },
+  "k8_newreward": {
+    "final_values": {
+      "kl": 0.27034470438957214,
+      "mean_length": 251.125,
+      "reward_mean": 1.843104600906372
+    },
+    "max_step": 5864,
+    "n_points": {
+      "kl": 5864,
+      "mean_length": 5864,
+      "reward_mean": 5864
+    },
+    "phase_files": [
+      "model-checkpoints/k-8-new-reward/tensorboard/grpo/events.out.tfevents.1781270315.t1v-n-f769470f-w-0",
+      "model-checkpoints/k-8-new-reward/tensorboard/grpo/events.out.tfevents.1781297867.t1v-n-f769470f-w-0"
+    ],
+    "source": "tensorboard"
+  }
+}

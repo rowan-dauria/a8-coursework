@@ -1,0 +1,5 @@
+# Justification for the principled modifications made over the baseline results.
+
+- Noticed that the evals show the model learns to format the answer very well by step 3364. We noticed this especially after running K=8 to 3364 steps. Our thinking is that the baseline reward function has equal weighting for format and correct answer, with the k=8 model earning 6-7/10 reward by answering qus correctly 50% of the time.
+- Our thesis is that the model is reward hacking, learns to format perfectly to maximise reward.
+- So we took the model that had already learned to format correctly after 3362 steps, and trained it for another 2.5k steps (5862 total) with a reweighted reward that more strongly emphasises the answer accuracy. It also includes a clipped exponential accuracy reward to give a more dense reward function than the base, which is a course grain step function.

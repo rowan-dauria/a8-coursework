@@ -11,10 +11,19 @@ non-degenerate groups the two-sample standardisation is high-variance, so the ef
 sample size per update is tiny. The principled modification is to raise the group size to
 $K=8$, which the lecture variance argument predicts should reduce the fraction of degenerate
 groups, give a better-conditioned $\sigma_r$, and lower the variance of $\hat A_i$ (effective
-sample size grows with $K$). A secondary modification reshapes the reward toward the true
-correctness signal (the ``new reward''). \textbf{Prediction:} $K=8$ stabilises training
-(sustained reward, bounded KL, stable response length) and recovers or improves held-out
-accuracy over the base model, while the reward reshaping adds at most a marginal gain.
+sample size grows with $K$). The second modification targets a \emph{reward-hacking} failure that becomes visible once $K=8$
+trains stably. The baseline reward weights the format/shaping terms and the correctness term
+roughly equally, and by step $\sim$3364 the $K=8$ policy formats almost perfectly while answering
+only about half of the prompts correctly --- yet still earns $\approx 7/10$ reward. The policy is
+therefore largely maximising the cheap, dense format terms rather than accuracy. To counter this I
+resume that format-competent checkpoint and train a further $\sim$2.5k steps (5864 total) with a
+reward reweighted toward answer accuracy, replacing the baseline's coarse step-function
+correctness term with a denser clipped-exponential accuracy reward (a smooth, bounded function of
+the answer error). \textbf{Predictions:} (i) raising $K$ to 8 stabilises training (sustained
+reward, bounded KL, stable response length) and recovers or improves held-out accuracy over the
+base model; (ii) the accuracy-weighted reward raises exact accuracy without harming format. Because
+the two runs optimise different reward functions, the second prediction must be read from accuracy,
+not from the (now lower) absolute reward.
 
 \paragraph{Controlled-comparison design.}
 \noindent
@@ -65,7 +74,7 @@ $K=2$ produces a large KL excursion at the collapse ($\approx 10$ near step 1000
 erratic, while both $K=8$ runs hold a low, bounded reference-KL of $\approx 0.2$--$0.3$.
 
 \begin{figure}[htbp]
-\optionalfigure[0.66\linewidth]{../tpu-2026-fork/report_assets/comparison_mean_reward.pdf}{insert overlay of baseline and variant mean-reward curves}
+\optionalfigure[0.66\linewidth]{../report-materials/data-and-figs/comparison_mean_reward.pdf}{insert overlay of baseline and variant mean-reward curves}
 \caption{Mean reward $\bar r$ (per-rollout total reward summed over the four reward terms) for the
 default-reward runs ($K=2$ vs $K=8$). Bold: 64-step centred moving average; faint trace: raw
 per-step reward.}
@@ -73,7 +82,7 @@ per-step reward.}
 \end{figure}
 
 \begin{figure}[htbp]
-\optionalfigure[0.66\linewidth]{../tpu-2026-fork/report_assets/comparison_kl.pdf}{insert overlay of baseline and variant KL curves}
+\optionalfigure[0.66\linewidth]{../report-materials/data-and-figs/comparison_kl.pdf}{insert overlay of baseline and variant KL curves}
 \caption{Reference-KL $\mathrm{KL}(\pi_\theta\|\pi_{\mathrm{ref}})$ across runs (64-step centred
 moving average, faint raw trace). The $K=2$ collapse coincides with a large KL excursion near
 step 1000; both $K=8$ runs stay within a low KL budget.}
@@ -89,7 +98,7 @@ stable $\sim$300--350 tokens for the whole run; the new reward trims length slig
 $\approx 251$ vs $\approx 305$ tokens) without hurting accuracy.
 
 \begin{figure}[htbp]
-\optionalfigure[0.66\linewidth]{../tpu-2026-fork/report_assets/diagnostic_response_length.pdf}{insert diagnostic plot: response length over training}
+\optionalfigure[0.66\linewidth]{../report-materials/data-and-figs/diagnostic_response_length.pdf}{insert diagnostic plot: response length over training}
 \caption{Diagnostic for a GRPO failure mode: mean completion length over training (64-step
 centred moving average, faint raw trace). $K=2$ collapses to empty completions with intermittent
 length blow-up; $K=8$ remains stable.}
@@ -100,7 +109,11 @@ length blow-up; $K=8$ remains stable.}
 Raising $K$ from 2 to 8 turns a catastrophic failure ($0.08\%$, far \emph{below} the base
 model's $47.38\%$) into a substantial improvement ($56.03\%$, $+8.64$ points over base). The
 correctness-heavy reward adds a further suggestive $+2.50$ points to $58.53\%$, but its paired CI
-includes zero, so I do not claim it as a separated effect. The diagnostic confirms the mechanism:
+includes zero, so I do not claim it as a separated effect. The reward-hacking signature is clear,
+though: format accuracy is essentially unchanged across the two $K=8$ runs ($94.8\%\to94.3\%$)
+while exact accuracy rises, exactly the pattern the reweighting was designed to produce --- it
+shifted learning pressure onto correctness without sacrificing the already-solved formatting. The
+diagnostic confirms the $K=2$ mechanism:
 $K=2$ does not merely train with higher variance, it collapses into a degenerate empty-output
 attractor, which the $K=8$ runs entirely avoid.
 
@@ -117,9 +130,11 @@ excursion drove the policy into an empty-output mode that destroys format and he
 a failure of the advantage \emph{signal}, not of model capacity.
 
 \paragraph{Limitations.}
-Each setting is a single seed, and the new-reward gain over $K=8$ is not separated from zero. The
-two long $K=8$ runs were logged only to local TensorBoard and were reconstructed by stitching a
-shared 3364-step phase-1 base with each run's phase-2 events (the resume reset the reward/length
-step counter while KL kept the global step); the reward and length curves are continuous across
-the resume boundary, but a clean reward-specific claim would need a re-run with full logging and a
-second seed.
+Each setting is a single seed, and the new-reward gain over $K=8$ is not separated from zero. Both
+long $K=8$ runs follow a deliberate two-phase curriculum: a 3364-step phase-1 base (default reward)
+on which the policy learns to format, then a $\sim$2.5k-step phase~2 --- default reward for the
+$K=8$ baseline, accuracy-weighted for the new-reward run. Their per-step metrics were logged only
+to local TensorBoard and were reconstructed by stitching the shared phase-1 base to each run's
+phase-2 events (the resume reset the reward/length step counter while KL kept the global step); the
+curves are continuous across the boundary. A clean reward-specific claim would still need full
+logging and a second seed.

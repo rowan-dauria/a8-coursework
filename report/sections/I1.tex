@@ -47,7 +47,7 @@ The LoRA checkpoint is substantially worse than the base model, indicating a tra
 
 \begin{figure}[htbp]
 \optionalfigure{../tpu-2026-fork/report_assets/baseline_mean_reward_curve.pdf}{insert baseline mean reward curve, $\bar r$ vs.\ GRPO step}
-\caption{Baseline mean reward $\bar r$ during GRPO training. Bold curve: 64-step centred moving average; faint trace: raw per-step reward.}
+\caption{Baseline mean reward $\bar r$ (per-rollout total reward summed over the four reward terms) during GRPO training. Bold curve: 64-step centred moving average; faint trace: raw per-step reward.}
 \label{fig:baseline-reward}
 \end{figure}
 
@@ -58,4 +58,4 @@ The LoRA checkpoint is substantially worse than the base model, indicating a tra
 \end{figure}
 
 \noindent
-The reward rises early, peaking around 1.5 between steps 400 and 900, then declines to near zero by the end. The KL remains around 0.5 for most of training, with spikes near steps 2500 and 3300. The policy learned reward-correlated behaviour early but subsequently drifted away from the reference without preserving GSM8K accuracy.
+The reward rises early, peaking around 7.3 near step 460, then declines to roughly zero (slightly negative) by the end. The KL remains around 0.5 for most of training, with spikes near steps 2500 and 3300. The policy learned reward-correlated behaviour early but subsequently drifted away from the reference without preserving GSM8K accuracy.

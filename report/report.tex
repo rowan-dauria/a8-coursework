@@ -3,6 +3,7 @@
 \usepackage[margin=2cm]{geometry}
 \usepackage{amsmath,amssymb,mathtools}
 \usepackage{graphicx}
+\usepackage{subcaption}
 \usepackage{booktabs}
 \usepackage{array}
 \usepackage{enumitem}
@@ -42,6 +43,19 @@
     \end{center}
   }{%
     \figplaceholder[#1]{#3}
+  }%
+}
+% Compact panel for side-by-side subfigures: image if present, else small placeholder.
+\newcommand{\figpanel}[2]{%
+  \IfFileExists{#1}{%
+    \includegraphics[width=\linewidth]{#1}%
+  }{%
+    \fbox{%
+      \begin{minipage}[c][0.16\textheight][c]{\linewidth}
+        \centering
+        \placeholder{#2}
+      \end{minipage}%
+    }%
   }%
 }
 

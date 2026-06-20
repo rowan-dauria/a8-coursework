@@ -1,4 +1,4 @@
-step,rewards/eval/score/mean
+step,eval_score_mean
 0,0.28475935828877
 64,0.4087566844919786
 128,0.768048128342246

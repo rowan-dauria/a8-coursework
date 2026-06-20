@@ -69,6 +69,7 @@ fine-tuned LoRA — run k16-2000-steps
   format   94.69% (0.9469) \[93.48%, 95.91%\]            94.70%      0.62%
 
 ---
+# APPENDIX DATA
 
 # K sweep evals (64 test pts)
 

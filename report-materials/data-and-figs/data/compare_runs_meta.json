@@ -1,12 +1,16 @@
 {
   "k2": {
     "final_values": {
+      "eval_mean_length": 37.9670245398773,
+      "eval_reward_mean": -2.2352377300613497,
       "kl": 0.0,
       "mean_length": 0.0,
       "reward_mean": -2.5
     },
     "max_step": 5864,
     "n_points": {
+      "eval_mean_length": 92,
+      "eval_reward_mean": 92,
       "kl": 5864,
       "mean_length": 5864,
       "reward_mean": 5864
@@ -18,12 +22,16 @@
   },
   "k8": {
     "final_values": {
+      "eval_mean_length": 351.7906494140625,
+      "eval_reward_mean": 7.4190473556518555,
       "kl": 0.20049162209033966,
       "mean_length": 305.25,
       "reward_mean": 3.875
     },
     "max_step": 5864,
     "n_points": {
+      "eval_mean_length": 92,
+      "eval_reward_mean": 92,
       "kl": 5864,
       "mean_length": 5864,
       "reward_mean": 5864
@@ -36,12 +44,16 @@
   },
   "k8_newreward": {
     "final_values": {
+      "eval_mean_length": 361.9049072265625,
+      "eval_reward_mean": 4.666613578796387,
       "kl": 0.27034470438957214,
       "mean_length": 251.125,
       "reward_mean": 1.843104600906372
     },
     "max_step": 5864,
     "n_points": {
+      "eval_mean_length": 92,
+      "eval_reward_mean": 92,
       "kl": 5864,
       "mean_length": 5864,
       "reward_mean": 5864

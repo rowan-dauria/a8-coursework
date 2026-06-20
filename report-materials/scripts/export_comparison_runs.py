@@ -54,6 +54,11 @@ METRICS = {
     "rewards/train/score/mean": "reward_mean",
     "actor/train/kl": "kl",
     "completions/train/mean_length": "mean_length",
+    # Held-out eval counterparts (logged every EVAL_EVERY_N_STEPS=64 steps). The
+    # reward/length plots use these eval series; KL stays on the train series
+    # (there is no meaningful held-out reference-KL plot here).
+    "rewards/eval/score/mean": "eval_reward_mean",
+    "completions/eval/mean_length": "eval_mean_length",
 }
 
 # Shared 3364-step K=8 phase-1 base both long runs resumed from.

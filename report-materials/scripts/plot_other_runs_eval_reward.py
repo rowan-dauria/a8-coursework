@@ -98,8 +98,7 @@ def main() -> None:
         print(f"  {label} ({run_id}): {len(pts)} eval points, steps {steps[0]}..{steps[-1]}")
 
     plt.xlabel("GRPO step")
-    plt.ylabel("Held-out eval reward\n(rewards/eval/score/mean)")
-    plt.title("Other parameter changes: held-out eval reward over training")
+    plt.ylabel(r"$\bar{r}$ (held-out eval)")
     plt.legend(loc="center left", bbox_to_anchor=(1.01, 0.5), fontsize=8)
     plt.grid(alpha=0.3)
     plt.tight_layout()

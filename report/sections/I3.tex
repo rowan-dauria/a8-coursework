@@ -55,41 +55,49 @@ result as suggestive rather than cleanly separated from the $K=8$ baseline.
 
 \paragraph{Training dynamics and diagnostic.}
 Figure~\ref{fig:dynamics} overlays the held-out curves (every 64 steps). Reward is comparable only
-\emph{within} a fixed reward function, so panel (a) shows the two default-reward runs and the
+\emph{within} a fixed reward function, so the left panel shows the two default-reward runs and the
 new-reward run is judged by KL and accuracy. The $K=8$ reward is sustained around $7.5$, whereas
 $K=2$ peaks early (step $\sim$300) and collapses by step $\sim$1000 to the $-2.5$ format-penalty
-floor. KL (b) tells the same story: $K=2$ shows a large excursion ($\approx10$) at the collapse and
-stays erratic, while both $K=8$ runs hold a bounded $\approx0.2$--$0.3$. The diagnostic (c), mean
-eval completion length --- a known GRPO failure mode --- pins the mechanism: at step $\sim$1000
-$K=2$ collapses to near-empty completions, with an unstable blow-up to $\sim$600 tokens over steps
-2300--3100 before settling at a $\sim$40-token mode; both $K=8$ runs hold a stable $\sim$300--360
-tokens (new-reward $\approx362$ vs default $\approx352$).
+floor. KL (right panel) tells the same story: $K=2$ spikes at the collapse (raw KL $\approx10$, 64-step
+mean $\approx1$) and stays erratic, while both $K=8$ runs hold a bounded $\approx0.2$--$0.3$. The diagnostic
+(Figure~\ref{fig:length-diagnostic}), mean eval completion length --- a known GRPO failure mode ---
+pins the mechanism: at step $\sim$1000 $K=2$ collapses to near-empty completions, with an unstable
+blow-up to $\sim$600 tokens over steps 2300--3100 before settling at a $\sim$40-token mode; both
+$K=8$ runs hold a stable $\sim$300--360 tokens (new-reward $\approx362$ vs default $\approx352$).
+
+\paragraph{Why response length, not advantage variance.}
+The coursework suggests an advantage-variance diagnostic, but a $\mathrm{Var}(\hat A_i)$-over-training
+curve is not reconstructible from what was logged. The advantage $\hat A_i=(r_i-\bar r)/\sigma_r$ is
+standardised \emph{per group}, so its within-group variance is $\approx1$ by construction (Tunix sets
+$\hat A_i=0$ when $\sigma_r=0$); the genuinely informative quantity is instead the share of degenerate
+groups, i.e.\ the spread of $\sigma_r$ \emph{across} groups, which ties directly to $K_{\mathrm{eff}}$
+(I.4). Neither was recorded: the runs logged only batch aggregates (mean/max/min/sum of the total
+reward and per-term means, plus KL and length), with no per-group $\sigma_r$ or per-sample advantage,
+and the per-question dumps in \path{analysis/} are final-checkpoint eval outputs rather than per-step
+advantages. The recommended fix for a re-run is to log the per-group reward std $\sigma_r$ or the
+fraction of degenerate groups (both already computed inside the standardisation, hence near-free);
+absent that, mean completion length is the strongest GRPO-failure-mode signal the logged scalars
+support.
 
 \begin{figure}[htbp]
 \centering
-\begin{subfigure}[t]{0.32\linewidth}
-  \centering
-  \figpanel{../report-materials/data-and-figs/comparison_mean_reward.pdf}{reward overlay}
-  \caption{Eval reward (default-reward runs).}
-  \label{fig:reward-comparison}
-\end{subfigure}\hfill
-\begin{subfigure}[t]{0.32\linewidth}
-  \centering
-  \figpanel{../report-materials/data-and-figs/comparison_kl.pdf}{KL overlay}
-  \caption{Reference-KL (all runs).}
-  \label{fig:kl-comparison}
-\end{subfigure}\hfill
-\begin{subfigure}[t]{0.32\linewidth}
-  \centering
-  \figpanel{../report-materials/data-and-figs/diagnostic_response_length.pdf}{response length}
-  \caption{Mean eval completion length.}
-  \label{fig:diagnostic}
-\end{subfigure}
-\caption{Training dynamics (held-out, every 64 steps): (a) eval reward, default-reward runs only;
-(b) reference-KL $\mathrm{KL}(\pi_\theta\|\pi_{\mathrm{ref}})$; (c) GRPO-failure-mode diagnostic,
-mean completion length. The $K=2$ collapse near step 1000 is a simultaneous reward drop, KL
-excursion, and length collapse; both $K=8$ runs stay stable.}
+\optionalfigure[\linewidth]{../report-materials/data-and-figs/comparison_reward_kl.pdf}{reward and KL overlays}
+\caption{Training dynamics (held-out, every 64 steps). Left: eval reward $\bar r$ for the two
+default-reward runs (reward is comparable only within a fixed reward function). Right: reference-KL
+$\mathrm{KL}(\pi_\theta\|\pi_{\mathrm{ref}})$ for all three runs (64-step moving average, symlog
+$y$-axis). The $K=2$ collapse near step 1000 is a simultaneous reward drop and KL excursion;
+both $K=8$ runs stay stable.}
 \label{fig:dynamics}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\optionalfigure[0.62\linewidth]{../report-materials/data-and-figs/diagnostic_response_length.pdf}{mean completion length}
+\caption{GRPO-failure-mode diagnostic: mean held-out eval completion length (tokens) over training.
+At step $\sim$1000 the $K=2$ run collapses to near-empty completions, then blows up to $\sim$600
+tokens over steps 2300--3100 before settling at a $\sim$40-token mode; both $K=8$ runs hold a stable
+$\sim$300--360 tokens.}
+\label{fig:length-diagnostic}
 \end{figure}
 
 \paragraph{Findings and theory.}

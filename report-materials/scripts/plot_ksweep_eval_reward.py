@@ -97,9 +97,7 @@ def main() -> None:
         print(f"  {label} ({run_id}): {len(pts)} eval points, steps {steps[0]}..{steps[-1]}")
 
     plt.xlabel("GRPO step")
-    plt.ylabel(r"Held-out eval reward (\texttt{rewards/eval/score/mean})"
-               if plt.rcParams["text.usetex"] else "Held-out eval reward (rewards/eval/score/mean)")
-    plt.title("Group-size (K) sweep: held-out eval reward over training")
+    plt.ylabel(r"$\bar{r}$ (held-out eval)")
     plt.legend(loc="best", fontsize=9, title="group size")
     plt.grid(alpha=0.3)
     plt.tight_layout()

@@ -17,20 +17,12 @@ failure rather than a checkpoint-restore bug.
 \paragraph{Training curves.}
 \begin{figure}[htbp]
 \centering
-\begin{subfigure}[t]{0.49\linewidth}
-  \centering
-  \figpanel{../report-materials/data-and-figs/baseline_mean_reward_curve.pdf}{insert baseline eval reward vs.\ step}
-  \caption{Held-out eval reward.}
-  \label{fig:baseline-reward}
-\end{subfigure}\hfill
-\begin{subfigure}[t]{0.49\linewidth}
-  \centering
-  \figpanel{../tpu-2026-fork/report_assets/baseline_kl_curve.pdf}{insert baseline KL vs.\ step}
-  \caption{Reference-KL $\mathrm{KL}(\pi_\theta\|\pi_{\mathrm{ref}})$.}
-  \label{fig:baseline-kl}
-\end{subfigure}
-\caption{Baseline GRPO training vs.\ step: (a) held-out eval reward (mean per-rollout total
-reward summed over the four reward terms, every 64 steps) and (b) reference-KL.}
+\optionalfigure[\linewidth]{../report-materials/data-and-figs/baseline_curves.pdf}{baseline reward and KL vs.\ step}
+\caption{Baseline GRPO training vs.\ step (W\&B run \texttt{jgs4c6kl}). Left: held-out eval reward
+$\bar r$ (mean per-rollout total reward summed over the four reward terms, every 64 steps). Right:
+per-step reference-KL $\mathrm{KL}(\pi_\theta\|\pi_{\mathrm{ref}})$ (faint raw trace, bold 64-step
+moving average; symlog $y$-axis, as KL sits near $0.5$ but spikes to ${\sim}40$ during the late
+collapse).}
 \label{fig:baseline-curves}
 \end{figure}
 

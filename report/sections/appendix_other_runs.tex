@@ -1,0 +1,63 @@
+\subsection{Other training-parameter changes}
+
+Beyond the group-size sweep (Table~\ref{tab:ksweep}) and the reward reweighting reported in I.3,
+the team ran several further single-knob experiments to probe the baseline: the learning rate,
+the LoRA rank/$\alpha$, the reference-KL coefficient $\beta$, and an explicit length penalty
+plus an empty-completion penalty. All use seed 42, the default 3364-step schedule, and the same
+greedy 64-example GSM8K eval protocol as the rest of the report. For reference, the frozen base
+model (\(\pi_{\text{ref}}\)) scores \textbf{47.38\%} on the full 1319-example test set.
+
+\begin{table}[htbp]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}L{0.18\linewidth}L{0.24\linewidth}L{0.04\linewidth}L{0.07\linewidth}L{0.11\linewidth}L{0.13\linewidth}L{0.09\linewidth}@{}}
+\toprule
+Run & Change vs baseline & $K$ & Wall & W\&B & LoRA acc (64) & Format \\
+\midrule
+LR 1e-5        & LR $3\mathrm{e}{-}6\to1\mathrm{e}{-}5$       & 8 & 8h03 & \href{https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/hozux9t6}{\texttt{hozux9t6}} & 29.69\% (19/64) & 98.44\% \\
+LoRA rank 128  & rank/$\alpha$ $64\to128$ (with $K{=}8$)      & 8 & 8h32 & \href{https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/aoz8dtkp}{\texttt{aoz8dtkp}} & n/a$^{\dagger}$ & -- \\
+LoRA rank 128  & rank/$\alpha$ $64\to128$                     & 2 & 5h29 & \href{https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/v5cvlwkm}{\texttt{v5cvlwkm}} & 32.81\% (21/64) & 53.12\% \\
+$\beta$=1e-6   & $\beta$ $0.08\to10^{-6}$ (KL $\approx$ off)   & 2 & 3h26 & \href{https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/8rmv0hgg}{\texttt{8rmv0hgg}} & pending$^{\ddagger}$ & -- \\
+$\beta$=0.32   & $\beta$ $0.08\to0.32$ (4$\times$ leash)       & 2 & 1h07 & \href{https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/oet2tfjd}{\texttt{oet2tfjd}} & pending$^{\ddagger}$ & -- \\
+Length penalty & $+$ length penalty                           & 2 & 2h34 & \href{https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/jcp0b5cy}{\texttt{jcp0b5cy}} & pending$^{\ddagger}$ & -- \\
+Length penalty & $+$ length penalty (batch $2\to1$)           & 8 & 5h17 & \href{https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/cyay16mj}{\texttt{cyay16mj}} & pending$^{\ddagger}$ & -- \\
+Hard/medium data & hard/medium curriculum data (with $K{=}8$) & 8 & 7h36 & \href{https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/6yiowy1y}{\texttt{6yiowy1y}} & pending$^{\ddagger}$ & -- \\
+Empty penalty  & $+$ empty-completion penalty                 & 2 & --   & \emph{not logged}                                                                              & 14.06\% (9/64)  & 39.06\% \\
+\bottomrule
+\end{tabular}
+\caption{Further single-variable runs (all seed 42, 3364 steps, greedy 64-example GSM8K eval).
+$^{\dagger}$ the standalone restored-checkpoint greedy accuracy was never completed for this run
+(only the healthier training-time W\&B eval reward exists), and it confounds two variables
+(rank \emph{and} $K{=}8$). $^{\ddagger}$ training finished but the standard 64-example greedy eval
+has not been run; the eval-reward trajectory in Fig.~\ref{fig:other-runs-eval-reward} is the only
+held-out signal so far. The empty-penalty run has no \texttt{runs/} folder or recorded W\&B id;
+its accuracy is from the step-3364 \texttt{eval\_dumps}. The batch-size change in the last
+length-penalty run, and the $K{=}8$ in the hard/medium-data run, each confound the change with
+group size; the hard/medium-data run's first attempt (W\&B \texttt{hlo1w4go}) also crashed at
+step 832 on a VM reboot before this clean rerun.}
+\label{tab:other-runs}
+\end{table}
+
+\begin{figure}[htbp]
+\optionalfigure[0.95\linewidth]{../report-materials/data-and-figs/other_runs_eval_reward.pdf}{insert other-runs held-out eval-reward curves}
+\caption{Held-out eval reward (\texttt{rewards/eval/score/mean}, on the 64-example eval, logged
+every 64 steps) versus GRPO step for the runs in Table~\ref{tab:other-runs} that streamed to
+W\&B. Raw values, no smoothing.}
+\label{fig:other-runs-eval-reward}
+\end{figure}
+
+\noindent
+The dominant pattern echoes the $K$ sweep: the $K{=}8$ variants (LR 1e-5, rank-128 $K{=}8$,
+length-penalty $K{=}8$, hard/medium data) hold a high, stable eval reward, whereas the $K{=}2$ variants collapse
+or thrash --- most starkly $\beta{=}10^{-6}$, where removing the reference-KL penalty removes the
+\emph{only} active trust region (the PPO clip never binds because the single inner iteration makes
+the importance ratio $\equiv1$) and the policy drifts off-distribution. Where greedy accuracy
+exists it tells a consistent story: neither a larger learning rate ($K{=}8$, $29.69\%$) nor extra
+adapter capacity ($K{=}2$, $32.81\%$) beats the base model, and both inflate \emph{format}
+adherence far above accuracy --- the same format-vs-correctness reward-hacking that motivated the
+I.3 reward reweighting. Extra capacity alone does not rescue $K{=}2$, consistent with the collapse
+being a variance / trust-region problem rather than a capacity one. The empty-completion penalty
+lifts the collapsed $K{=}2$ baseline from $3.12\%$ to $14.06\%$ but stays far below base, slowing
+the empty-output collapse without preventing it. These runs are exploratory and several are either
+eval-pending or confounded, so they are recorded here rather than in the main I.3 comparison.

@@ -1,0 +1,28 @@
+\subsection{Reward reweighting: pseudocode for the changes vs the baseline}
+\label{app:reward}
+
+Pseudocode for the parts of the GRPO reward that differ between the baseline
+(\path{scripts/baseline_scripts/rewards.py}) and the I.3 new-reward run
+(\path{scripts/rewards.py}, branch \texttt{reward-reweight}, commit \texttt{e4f6d69}).
+The four reward functions are still summed then GRPO-normalised within the group, and
+correctness is still gated on the template parsing; only the correctness \emph{shape}
+and the term \emph{magnitudes} change, shifting the budget from format ($5.5\to\approx1.0$)
+to correctness ($4.5\to5.5$) to counter format-vs-correctness reward hacking.
+
+\begin{verbatim}
+# check_answer: coarse ladder (incl. a negative penalty)  ->  smooth graded curve
+# BASELINE:
+  if   guess == true:                 score = 3.0
+  elif guess.strip() == true.strip(): score = 1.5
+  else: ratio = guess / true
+        score = 0.5 if 0.9<=ratio<=1.1 else 0.25 if 0.8<=ratio<=1.2 else -1.0
+        on parse error: score = -0.5
+# NEW: graded_correctness(guess, true, MAX=CORRECT_MAX=5.0), shared by both answer terms
+  if guess.strip() == true.strip(): return MAX
+  err = |guess - true| / max(|true|, 1e-6)        # relative error; parse error -> 0
+  return MAX * exp(-CORRECT_K * err)              # CORRECT_K=3.0; smooth, in [0, MAX]
+
+# match_format_exactly:  3.0            ->  FORMAT_EXACT = 0.5   (entry fee)
+# match_format_approx.:  +/-0.5 per tag ->  +/-FORMAT_TAG = +/-0.1 per tag (5 tags)
+# check_numbers:  1.5 if guess==true else 0  ->  graded_correctness(.., MAX=0.5)
+\end{verbatim}

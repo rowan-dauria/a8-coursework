@@ -63,21 +63,20 @@ that increasing $K$ rescues training from a catastrophic collapse and that the n
 preserves, and perhaps slightly improves on, that gain.
 
 \paragraph{Training dynamics.}
-Figure~\ref{fig:reward-comparison} overlays the mean-reward curves. Because mean reward is only
+Figure~\ref{fig:reward-comparison} overlays the held-out eval-reward curves. Because reward is only
 comparable \emph{within a fixed reward function}, this figure shows the two default-reward runs;
 the new-reward run is assessed through KL (Fig.~\ref{fig:kl-comparison}) and held-out accuracy.
-Reward here is the mean per-rollout total reward $\bar r$ (summed over the four reward terms,
-Tunix's \texttt{score/mean}; range $\approx[-4.5,10]$). The $K=8$ reward is sustained around
-$7.5$ for most of training, whereas $K=2$ peaks early (around step 200) and then collapses by
+Reward here is the held-out mean per-rollout total reward (summed over the four reward terms,
+Tunix's \texttt{rewards/eval/score/mean}), logged every 64 steps. The $K=8$ reward is sustained around
+$7.5$ for most of training, whereas $K=2$ peaks early (around step 300) and then collapses by
 step $\sim$1000, sitting at the $-2.5$ format-penalty floor with only brief thrashing recoveries. The KL curves (Fig.~\ref{fig:kl-comparison}) tell the same story:
 $K=2$ produces a large KL excursion at the collapse ($\approx 10$ near step 1000) and stays
 erratic, while both $K=8$ runs hold a low, bounded reference-KL of $\approx 0.2$--$0.3$.
 
 \begin{figure}[htbp]
 \optionalfigure[0.66\linewidth]{../report-materials/data-and-figs/comparison_mean_reward.pdf}{insert overlay of baseline and variant mean-reward curves}
-\caption{Mean reward $\bar r$ (per-rollout total reward summed over the four reward terms) for the
-default-reward runs ($K=2$ vs $K=8$). Bold: 64-step centred moving average; faint trace: raw
-per-step reward.}
+\caption{Held-out eval reward (mean per-rollout total reward summed over the four reward terms)
+for the default-reward runs ($K=2$ vs $K=8$), logged every 64 steps.}
 \label{fig:reward-comparison}
 \end{figure}
 
@@ -90,18 +89,19 @@ step 1000; both $K=8$ runs stay within a low KL budget.}
 \end{figure}
 
 \paragraph{Diagnostic: response-length collapse.}
-Figure~\ref{fig:diagnostic} plots mean completion length, a known GRPO failure mode. The $K=2$
-policy collapses to near-zero-length (degenerate, empty) completions after step $\sim$1000 ---
-the same point at which reward and KL collapse --- punctuated by an unstable blow-up to
-$\sim$600 tokens around steps 2500--3200 before collapsing again. Both $K=8$ runs instead hold a
-stable $\sim$300--350 tokens for the whole run; the new reward trims length slightly (final
-$\approx 251$ vs $\approx 305$ tokens) without hurting accuracy.
+Figure~\ref{fig:diagnostic} plots mean held-out eval completion length, a known GRPO failure
+mode. The $K=2$ policy collapses to near-zero-length (degenerate, empty) completions after step
+$\sim$1000 --- the same point at which reward and KL collapse --- punctuated by an unstable
+blow-up to $\sim$600 tokens around steps 2300--3100 before collapsing to a short $\sim$40-token
+mode for the rest of the run. Both $K=8$ runs instead hold a stable $\sim$300--360 tokens
+throughout; the new-reward run tracks the default-reward $K=8$ run closely on eval length (final
+$\approx 362$ vs $\approx 352$ tokens).
 
 \begin{figure}[htbp]
 \optionalfigure[0.66\linewidth]{../report-materials/data-and-figs/diagnostic_response_length.pdf}{insert diagnostic plot: response length over training}
-\caption{Diagnostic for a GRPO failure mode: mean completion length over training (64-step
-centred moving average, faint raw trace). $K=2$ collapses to empty completions with intermittent
-length blow-up; $K=8$ remains stable.}
+\caption{Diagnostic for a GRPO failure mode: mean held-out eval completion length over training
+(logged every 64 steps). $K=2$ collapses to empty completions with an intermittent length
+blow-up; both $K=8$ runs remain stable.}
 \label{fig:diagnostic}
 \end{figure}
 

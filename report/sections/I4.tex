@@ -3,61 +3,155 @@
 \subsection{Question 1: Group-Normalised Advantages}
 
 \paragraph{(i)}
-\placeholder{Compute $\mathbb{E}[X_i]$ and $\mathbb{E}[\hat g]$. Briefly explain why zero expectation in this fixed-action setup does not imply the actual policy gradient is zero.}
-
-\begin{align}
-\bar r &= \frac{1}{K}\sum_{j=1}^K r_j, &
-\hat A_i &= \frac{r_i-\bar r}{\sigma}, &
-X_i &= h_i\hat A_i .
-\end{align}
+Since $\mathbb{E}[r_i-\bar r]=0$ and $h_i$ is fixed,
+\begin{equation}
+ \mathbb{E}[X_i]=\frac{h_i}{\sigma}\mathbb{E}[r_i-\bar r]=0,
+ \qquad \mathbb{E}[\hat g]=\frac{1}{K}\sum_i\mathbb{E}[X_i]=0.
+\end{equation}
+This conditions on fixed actions and i.i.d. rewards.  In the actual policy gradient,
+reward depends on the sampled action, so score and reward may be correlated.
 
 \paragraph{(ii)}
-\placeholder{Identify the shared random term and compute $\operatorname{Cov}(X_i,X_j)$ for $i\ne j$ in terms of $h_i h_j^\top$. State the sign and intuition.}
+The shared random term is $-h_i\bar r/\sigma$ in
+$X_i=h_i(r_i-\bar r)/\sigma$.  For $i\ne j$,
+\begin{align}
+ \operatorname{Cov}(r_i-\bar r,r_j-\bar r)
+ &=0-\frac{\sigma^2}{K}-\frac{\sigma^2}{K}+\frac{\sigma^2}{K}
+ =-\frac{\sigma^2}{K},\\
+ \therefore\quad \operatorname{Cov}(X_i,X_j)
+ &=-\frac{1}{K}h_i h_j^\top .
+ \label{eq:q1-cross-cov}
+\end{align}
+The coefficient is negative: increasing $r_i$ raises the shared mean and lowers every
+other centred reward.  (For unequal $h_i,h_j$, the outer-product matrix itself has no
+semidefinite sign.)
 
 \paragraph{(iii)}
-\placeholder{Compute $\operatorname{Var}(\hat g)$, compare with the naive iid estimator, define $K_{\mathrm{eff}}$, and discuss large $K$ and aligned $h_i$.}
+Since $\operatorname{Var}(X_i)=(K-1)h_i h_i^\top/K$, Eq.~\eqref{eq:q1-cross-cov}
+gives, with $\bar h=K^{-1}\sum_i h_i$,
+\begin{align}
+ \operatorname{Var}(\hat g)
+ &=\frac{1}{K^2}\left[\frac{K-1}{K}\sum_i h_i h_i^\top
+ -\frac{1}{K}\sum_{i\ne j}h_i h_j^\top\right]\\
+ &=\frac{1}{K^2}\sum_i(h_i-\bar h)(h_i-\bar h)^\top .
+ \label{eq:q1-var-g}
+\end{align}
+The naive i.i.d. result would be
+$\operatorname{Var}(X_1)/K=(K-1)h_1h_1^\top/K^2$ and omits the cross-covariances.
+Because covariances are matrices, effective sample size is direction-dependent.  For a
+direction $u$, define
+\begin{equation}
+ K_{\mathrm{eff}}(u)
+ :=\frac{\operatorname{Var}(u^\top X_1)}
+          {\operatorname{Var}(u^\top\hat g)}
+ =\frac{K(K-1)(u^\top h_1)^2}
+        {\sum_i\{u^\top(h_i-\bar h)\}^2}.
+\end{equation}
+For bounded, non-degenerate score dispersion this is $O(K)$.  If $h_i=s_i v$ are
+aligned, only the variation of the $s_i$ remains; if all $h_i$ are identical then
+$\sum_i\hat A_i=0$, so $\hat g=0$ and $K_{\mathrm{eff}}$ is infinite.
 
 \subsection{Question 2: KL-Regularised Policy Updates and Clipping}
 
 \paragraph{(i)}
-\placeholder{Derive the unique optimiser of the KL-regularised update and explain $\eta$ as a step size.}
-
+Using a multiplier for $\sum_a\pi(a)=1$, stationarity gives
+$A_t(a)-\eta^{-1}(\log(\pi(a)/\pi_t(a))+1)+\lambda=0$.  Hence
 \begin{equation}
-\pi_{t+1}(a)
-= \mathplaceholder{closed-form expression in }\pi_t(a), A_t(a), \eta.
+ \boxed{\displaystyle
+ \pi_{t+1}(a)=
+ \frac{\pi_t(a)e^{\eta A_t(a)}}{\sum_b\pi_t(b)e^{\eta A_t(b)}} .}
+ \label{eq:exponentiated-update}
 \end{equation}
+Strict concavity gives uniqueness on the support of $\pi_t$.  Small $\eta$ keeps the
+update close to $\pi_t$; large $\eta$ concentrates more strongly on high-advantage actions.
 
 \paragraph{(ii)}
-\placeholder{Show monotone improvement for exact advantages and identify one practical neural-network/GRPO condition where the guarantee fails.}
+For the exact advantage, $J(\pi_t)=\mathbb{E}_{\pi_t}[A^{\pi_t}]=0$.  Since $\pi_t$ is
+feasible, optimality implies
+\begin{equation}
+ J(\pi_{t+1})-\frac{1}{\eta}\operatorname{KL}(\pi_{t+1}\Vert\pi_t)\ge0,
+ \qquad\therefore\qquad J(\pi_{t+1})\ge0=J(\pi_t).
+\end{equation}
+Neural GRPO instead uses a noisy finite-group advantage and approximate SGD optimisation,
+so the exact-advantage/optimiser premise, and therefore the guarantee, can fail.
 
 \paragraph{(iii)}
-\placeholder{Describe the trust region induced by PPO clipping and contrast it with a joint KL constraint. State at least one qualitative difference.}
+For $\hat A_t>0$, clipping removes the incentive to raise the sampled ratio above
+$1+\varepsilon$; for $\hat A_t<0$, it removes the incentive to lower it below
+$1-\varepsilon$.  This is a samplewise, one-sided soft trust region, not a hard ratio
+constraint.  A joint KL constraint instead bounds average change over the full policy,
+allowing larger changes on rare actions; clipping ignores unsampled actions and does not
+guarantee any particular KL bound.
 
 \subsection{Question 3: Mixture Proposals and Importance Correction}
 
-\paragraph{(i)}
-\placeholder{Derive the importance-corrected estimator using samples from $\pi_{\mathrm{mix}}$ and give $w_i$.}
+Write $p=\pi_{\mathrm{old}}(\cdot\mid q)$, $m=\pi_{\mathrm{mix}}(\cdot\mid q)$, and
+$u=\pi_{\mathrm{unif}}(\cdot\mid q)$.
 
+\paragraph{(i)}
+Since $\mathbb{E}_{p}[f]=\mathbb{E}_{m}[wf]$, the importance-corrected estimator is
 \begin{equation}
-\pi_{\mathrm{mix}}(a\mid q)
-= (1-\alpha)\pi_{\mathrm{old}}(a\mid q)
-+ \alpha\pi_{\mathrm{unif}}(a\mid q).
+ \hat g_{\mathrm{mix}}=\frac{1}{K}\sum_i
+ w_i\nabla_\theta\log\pi_\theta(a_i\mid q)\hat A_i,
+ \qquad
+ \boxed{\displaystyle w_i=\frac{p(a_i)}{m(a_i)}
+ =\frac{p(a_i)}{(1-\alpha)p(a_i)+\alpha u(a_i)}.}
+ \label{eq:mixture-weight}
 \end{equation}
+The support condition holds because $m(a)\ge(1-\alpha)p(a)$ for $\alpha<1$.
 
 \paragraph{(ii)}
-\placeholder{Verify the $\alpha\to0$ limit recovers standard GRPO for the same realised actions.}
+As $\alpha\to0$, $m(a_i)\to p(a_i)$ and $w_i\to1$.  With the same actions and group
+advantages, $\hat g_{\mathrm{mix}}\to\hat g_{\mathrm{GRPO}}$.
 
 \paragraph{(iii.a)}
-\placeholder{Express $V^{\pi_{\mathrm{mix}}}(q)$ in terms of $V^{\pi_{\mathrm{old}}}(q)$ and $V^{\pi_{\mathrm{unif}}}(q)$.}
+\begin{equation}
+ V^m(q)=(1-\alpha)V^p(q)+\alpha V^u(q).
+\end{equation}
 
 \paragraph{(iii.b)}
-\placeholder{State whether weights alone correct the baseline shift, then derive the reweighted advantage needed for unbiasedness under $\pi_{\mathrm{old}}$.}
+The weights correct the sampling distribution but do not make the unweighted mixture
+mean estimate $V^p$.  The target-centred term is
+\begin{equation}
+ w_i\frac{r_i-V^p(q)}{\sigma_p},
+ \qquad V^p(q)=\mathbb{E}_m[w(a)R(q,a)].
+\end{equation}
+For an unbiased finite-sample baseline, use the independent leave-one-out estimate
+\begin{equation}
+ b_{-i}=\frac{1}{K-1}\sum_{j\ne i}w_jr_j,
+ \qquad
+ \boxed{\displaystyle
+ \hat g_{\mathrm{mix}}=\frac{1}{K}\sum_i w_i\nabla\log p(a_i\mid q)
+ \frac{r_i-b_{-i}}{\sigma_p}.}
+ \label{eq:unbiased-mix-estimator}
+\end{equation}
+Here $\mathbb{E}[b_{-i}]=V^p$, $b_{-i}$ is independent of $a_i$, and
+$\mathbb{E}_m[w\nabla\log p]=0$.  This establishes unbiasedness when $\sigma_p$ is
+treated as fixed; empirical standardisation introduces ratio-estimator bias.
 
 \paragraph{(iv)}
-\placeholder{Compare variance against standard GRPO. Give one reward condition where uniform mixing increases advantage variance and one where it decreases it, with short mathematical arguments.}
+There is no universal variance ordering.  Before weighting,
+\begin{equation}
+ \operatorname{Var}_m(R)=(1-\alpha)\operatorname{Var}_p(R)
+ +\alpha\operatorname{Var}_u(R)+\alpha(1-\alpha)(V^p-V^u)^2.
+ \label{eq:mixture-variance}
+\end{equation}
+Thus mixing increases advantage variance if, for example,
+$\operatorname{Var}_u(R)\ge\operatorname{Var}_p(R)$ and $V^u\ne V^p$.  It decreases
+it when $V^u=V^p$ and $\operatorname{Var}_u(R)<\operatorname{Var}_p(R)$.
+For the importance-weighted gradient integrand
+$F=\nabla\log p(R-V^p)/\sigma_p$,
+$\mathbb{E}_m\lVert wF\rVert^2=\mathbb{E}_p[w\lVert F\rVert^2]$; variance rises when
+large residuals occur mainly where $w>1$, but can fall if the mixture oversamples them,
+making $w<1$.
 
 \paragraph{(v.a)}
-\placeholder{Explain the behaviour of $w_i=c^T$ as $T\to\infty$ and why $c<1$ is typical when $\alpha>0$.}
+For $0<c<1$, $w_i=c^T=\exp(T\log c)\to0$ exponentially.  Uniform mixing adds mass to
+tokens that were unlikely under the old policy, so on such samples the old-to-mixture
+ratio is typically below one.
 
 \paragraph{(v.b)}
-\placeholder{Explain weight collapse and propose one concrete fix, including its trade-off.}
+Almost all long-response weights then vanish, leaving a very small effective sample size
+and an estimate dominated by rare non-negligible weights.  Clipping log-weights prevents
+this exponential dynamic range and reduces variance, at the cost of bias because the
+change of measure is no longer exact.

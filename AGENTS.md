@@ -48,4 +48,4 @@ The objective of the TPU project is to train a small instruction-tuned model (`g
 1.  **Python Environment:** Always run scripts with ~/venvs/tunix virtual environment activated on the TPU VM.
 2.  **Training Disconnections:** Always run training inside tmux to prevent shell disconnection crashes.
 3.  **Checkpointing Volatility:** Copy checkpoints from volatile /tmp to home directory for backup.
-4.  **Report Requirements:** Before editing the report, report assets, or report-related prose, read [`REPORT-REQS.md`](./report/REPORT-REQS.md) for the report-level submission, formatting, authorship, link, and logging requirements.
+4.  **Report Requirements:** Before editing the report, report assets, or report-related prose, read [`REPORT-REQS.md`](./report/REPORT-REQS.md) for the report-level submission, formatting, authorship, link, and logging requirements. When making prose changes to the report, also read [`STYLE.md`](./STYLE.md) and base the writing style on it without referencing its specific content.

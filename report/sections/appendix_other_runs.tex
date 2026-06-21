@@ -18,19 +18,16 @@ $\beta$=1e-6   & $\beta$ $0.08\to10^{-6}$ (KL $\approx$ off)   & 2 & 3h26 & \hre
 $\beta$=0.32   & $\beta$ $0.08\to0.32$ (4$\times$ leash)       & 2 & 1h07 & \href{https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/oet2tfjd}{\texttt{oet2tfjd}} & 0.00\% (0/64) \\
 Length penalty & $+$ length penalty                           & 2 & 2h34 & \href{https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/jcp0b5cy}{\texttt{jcp0b5cy}} & 4.69\% (3/64) \\
 Length penalty & $+$ length penalty (batch $2\to1$)           & 8 & 5h17 & \href{https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/cyay16mj}{\texttt{cyay16mj}} & 50.00\% (32/64) \\
-Hard/medium data & hard/medium curriculum data (with $K{=}8$) & 8 & 7h36 & \href{https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/6yiowy1y}{\texttt{6yiowy1y}} & pending$^{\dagger}$ \\
-Empty penalty  & $+$ empty-completion penalty                 & 2 & --   & \emph{not logged}                                                                              & 14.06\% (9/64) \\
+Hard/medium data & hard/medium curriculum data (with $K{=}8$) & 8 & 7h36 & \href{https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/6yiowy1y}{\texttt{6yiowy1y}} & 46.88\% (30/64) \\
+Empty penalty  & $+$ empty-completion penalty                 & 2 & 6h17 & \href{https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/dsi65ulz}{\texttt{dsi65u1z}}                                                                              & 14.06\% (9/64) \\
 \bottomrule
 \end{tabular}
 \caption{Further single-variable runs (all seed 42, 3364 steps, greedy 64-example GSM8K eval).
-$^{\dagger}$ the hard/medium-data training run finished, but no standalone evaluator output was
-available to verify its standard 64-example greedy accuracy; its eval-reward trajectory in
-Fig.~\ref{fig:other-runs-eval-reward} is the only verified held-out signal. The rank-128 $K{=}8$
-run confounds rank with group size. The empty-penalty run has no \texttt{runs/} folder or recorded W\&B id;
-its accuracy is from the step-3364 \texttt{eval\_dumps}. The batch-size change in the last
-length-penalty run, and the $K{=}8$ in the hard/medium-data run, each confound the change with
-group size; the hard/medium-data run's first attempt (W\&B \texttt{hlo1w4go}) also crashed at
-step 832 on a VM reboot before this clean rerun.}
+The rank-128 $K{=}8$ run confounds rank with group size. The empty-penalty run has no \texttt{runs/}
+folder; its accuracy is from the step-3364 \texttt{eval\_dumps}. The batch-size
+change in the last length-penalty run, and the $K{=}8$ in the hard/medium-data run, each confound
+the change with group size; the hard/medium-data run's first attempt (W\&B \texttt{hlo1w4go}) also
+crashed at step 832 on a VM reboot before this clean rerun.}
 \label{tab:other-runs}
 \end{table}
 

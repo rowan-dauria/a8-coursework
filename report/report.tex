@@ -21,6 +21,7 @@
 \setlist[itemize]{leftmargin=*,itemsep=0.2em,topsep=0.2em}
 \setlist[enumerate]{leftmargin=*,itemsep=0.2em,topsep=0.2em}
 \setlength{\emergencystretch}{2em}
+\setcounter{secnumdepth}{0}
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 
 \newcommand{\placeholder}[1]{\textcolor{red!70!black}{\textbf{[TODO: #1]}}}
@@ -108,11 +109,14 @@ at \href{https://github.com/borisbolliet/cmbagent_lg/commit/d7d0592a714e4cc01c97
 \input{sections/II3}
 
 \appendix
+\setcounter{secnumdepth}{2}% re-number appendices so \ref{app:...} cross-refs resolve
 \section{Appendix: Extra Experimental Details}
 
 \input{sections/appendix_ksweep}
 
 \input{sections/appendix_other_runs}
+
+\input{sections/appendix_controlled_comparison}
 
 \input{sections/appendix_reward}
 

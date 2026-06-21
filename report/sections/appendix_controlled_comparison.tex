@@ -1,0 +1,46 @@
+\subsection{Full-test controlled comparison}
+\label{app:results}
+
+Full breakdown of the I.3 controlled comparison (referenced from the headline results in I.3).
+
+\begin{table}[htbp]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}L{0.17\linewidth}L{0.24\linewidth}L{0.07\linewidth}L{0.08\linewidth}L{0.15\linewidth}L{0.15\linewidth}@{}}
+\toprule
+Run & Modification & Seed & Steps & Accuracy & 95\% bootstrap CI \\
+\midrule
+Base \texttt{gemma-3-1b-it} & no fine-tuning & 42 & -- & 625/1319 = 47.38\% & [44.81\%, 50.11\%] \\
+K=2 LoRA & default reward (baseline config) & 42 & 5864 & 1/1319 = 0.08\% & [0.00\%, 0.23\%] \\
+K=8 LoRA & group size $K{:}\,2\to8$, default reward & 42 & 5864 & 739/1319 = 56.03\% & [53.45\%, 58.76\%] \\
+K=8 new reward & $K=8$ plus correctness-heavy reward & 42 & 5864 & 772/1319 = 58.53\% & [55.88\%, 61.18\%] \\
+\bottomrule
+\end{tabular}
+\caption{Full-test GSM8K accuracy (1319 prompts, greedy decoding, seed-42 split) with
+non-parametric bootstrap 95\% CIs (10{,}000 resamples, seed 42).}
+\label{tab:controlled-comparison}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{@{}L{0.30\linewidth}L{0.14\linewidth}L{0.28\linewidth}@{}}
+\toprule
+Comparison ($B-A$) & $\Delta$ accuracy & 95\% CI \\
+\midrule
+K=2 $-$ base    & $-47.31\%$ & $[-50.04\%, -44.66\%]$ \\
+K=8 $-$ base    & $+8.64\%$  & $[+5.84\%, +11.45\%]$  \\
+K=8+rw $-$ base & $+11.14\%$ & $[+8.42\%, +13.80\%]$  \\
+K=8 $-$ K=2     & $+55.95\%$ & $[+53.37\%, +58.68\%]$ \\
+K=8+rw $-$ K=2  & $+58.45\%$ & $[+55.80\%, +61.11\%]$ \\
+K=8+rw $-$ K=8  & $+2.50\%$  & $[-0.08\%, +5.00\%]$   \\
+\bottomrule
+\end{tabular}
+\caption{Paired bootstrap differences in exact-match accuracy (same 1319 prompts, 10{,}000 paired
+resamples, seed 42). $\Delta = \mathrm{acc}(B)-\mathrm{acc}(A)$; a 95\% CI excluding 0 indicates the
+pair differs at the 5\% level. Every comparison is significant except K=8+rw $-$ K=8, whose CI
+includes 0.}
+\label{tab:paired-diffs}
+\end{table}

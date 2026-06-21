@@ -11,13 +11,13 @@ The baseline did not run as shipped because TFDS/GSM8K loading failed with a pro
 \paragraph{Accuracy.}
 On the GSM8K test split (seed-42 shuffle, first 64 examples, greedy decoding) the base
 \texttt{gemma-3-1b-it} scores $33/64=51.56\%$ exact, while the baseline LoRA GRPO checkpoint
-(step 3364) scores only $2/64=3.12\%$ --- substantially worse than base, indicating a training
+(step 3364) scores only $2/64=3.12\%$, substantially worse than base, indicating a training
 failure rather than a checkpoint-restore bug.
 
 \paragraph{Training curves.}
 \begin{figure}[htbp]
 \centering
-\optionalfigure[\linewidth]{../report-materials/data-and-figs/baseline_curves.pdf}{baseline reward and KL vs.\ step}
+\optionalfigure[0.82\linewidth]{../report-materials/data-and-figs/baseline_curves.pdf}{baseline reward and KL vs.\ step}
 \caption{Baseline GRPO training vs.\ step (W\&B run \texttt{jgs4c6kl}). Left: held-out eval reward
 $\bar r$ (mean per-rollout total reward summed over the four reward terms, every 64 steps). Right:
 per-step reference-KL $\mathrm{KL}(\pi_\theta\|\pi_{\mathrm{ref}})$ (faint raw trace, bold 64-step

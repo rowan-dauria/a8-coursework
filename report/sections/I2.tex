@@ -5,14 +5,14 @@ All three share the frozen Gemma-3-1B weights and differ only in LoRA adapters. 
 actor (LoRA matrices in \path{scripts/model.py}, the only trainable parameters);
 $\pi_{\mathrm{ref}}$ is the frozen base (zero-adapter) policy passed to \texttt{RLCluster}, the KL
 anchor with no trainable parameters; $\pi_{\mathrm{old}}$ is the actor snapshot that generated the
-rollouts. With \texttt{NUM\_ITERATIONS=1} Tunix skips a separate old-actor pass --- inside the loss
+rollouts. With \texttt{NUM\_ITERATIONS=1} Tunix skips a separate old-actor pass: inside the loss
 the old log-probabilities are the current per-token log-probabilities under \texttt{stop\_gradient}.
 
 \paragraph{Group size and estimator (b).}
 $K=2$ (\texttt{NUM\_GENERATIONS=2} in \path{scripts/config.py}). With the default
 \texttt{advantage\_estimator="grpo"} Tunix uses the standard group-normalised
 $\hat A_i = (r_i-\bar r_q)/(s_q+10^{-6})$, with $\bar r_q,s_q$ the mean and sample s.d.\ of the $K$
-rewards for a prompt --- the ordinary group-mean baseline, not the leave-one-out (\texttt{rloo})
+rewards for a prompt, the ordinary group-mean baseline, not the leave-one-out (\texttt{rloo})
 estimator.
 
 \paragraph{Reward decomposition (c).}

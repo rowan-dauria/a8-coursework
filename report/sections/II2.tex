@@ -1,10 +1,39 @@
 \subsection{II.2 Problems and Failure Modes}
 
-\paragraph{Problem 1: \placeholder{short name}.}
-\placeholder{Explain the issue, grounded in the implementation and lecture material on planning or closed-loop control.}
+\paragraph{1. Failure-blind and unbounded routing.}
+The outer controller always invokes the adaptive reviewer, even after the final
+or a failed step, but \texttt{route\_after\_review} then terminates on failure
+before consulting \texttt{needs\_adaptation}. It therefore cannot
+decompose, replace or reassign precisely the step for which feedback is most
+valuable. In the other direction, a successful step may trigger a replacement
+tail of arbitrary length. \texttt{maximum\_number\_of\_steps\_in\_plan} appears
+only in initial-planning prompts and is neither a schema constraint nor an outer
+execution budget. Repeated extensions can prevent completion and produce
+unbounded cost. This contradicts the study guide's central control principle:
+feedback loops need an orchestration-enforced attempt budget, rather than relying
+on an LLM to stop itself.
 
-\paragraph{Problem 2: \placeholder{short name}.}
-\placeholder{Explain the issue, grounded in the implementation and lecture material on planning or closed-loop control.}
+\paragraph{2. A lossy, uncalibrated feedback signal.}
+The adaptive reviewer observes only the latest text summary, a small outcome
+dictionary and the remaining steps. It does not receive the full completed
+history, execution verdicts, workspace manifest or artefact contents that are
+available elsewhere. Consequently its closed-loop observation is a lossy proxy
+for the environment: a summary may omit an invalid assumption or corrupt file,
+causing a false negative, while a stylistic surprise may cause an unnecessary
+rewrite. A single stochastic critic supplies both the binary trigger and its
+justification, with no confidence, deterministic invariant or independent check.
+This is weaker than the study guide's two-gate distinction between ``did it run?''
+and ``did it achieve the goal?'', and makes control vulnerable to shared model
+blind spots.
 
-\paragraph{Problem 3: \placeholder{short name}.}
-\placeholder{Explain the issue, grounded in the implementation and lecture material on planning or closed-loop control.}
+\paragraph{3. Unverified and irreversible revisions.}
+The initial plan receives fixed-round critique, whereas an adaptive tail is
+generated once and spliced into execution without review. Pydantic guarantees
+field types and permitted agent names, but not task coverage, dependency order,
+artefact availability or a maximum length. Moreover, the completed prefix is
+always immutable. If new evidence invalidates an earlier result, the controller
+can only build on or work around it, not roll back the affected step and its
+dependants. Finally, \texttt{run\_step} checkpoints before the subsequent merge;
+the revised plan and \texttt{adaptive\_history} are not persisted by the merge.
+A crash can therefore restore the pre-revision plan, undermining the audit trail
+and reproducibility expected from an observable closed-loop system.

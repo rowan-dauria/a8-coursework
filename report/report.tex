@@ -7,6 +7,7 @@
 \usepackage{booktabs}
 \usepackage{array}
 \usepackage{enumitem}
+\usepackage{float}
 \usepackage{xcolor}
 \usepackage[]{hyperref}
 
@@ -24,8 +25,8 @@
 
 \newcommand{\placeholder}[1]{\textcolor{red!70!black}{\textbf{[TODO: #1]}}}
 \newcommand{\mathplaceholder}[1]{\text{\textcolor{red!70!black}{[TODO: #1]}}}
-\newcommand{\repo}{\href{https://TODO.gitlab.repo.url}{\texttt{TODO-GitLab-repository}}}
-\newcommand{\wandb}{\href{https://wandb.ai/felsomoye-university-of-cambridge/tunix/runs/jgs4c6kl}{\texttt{jgs4c6kl}}}
+\newcommand{\repo}{\href{https://gitlab.developers.cam.ac.uk/phy/data-intensive-science-mphil/assessments/a8_coursework/rd761}{\texttt{a8\_coursework/rd761}}}
+\newcommand{\wandb}{\href{https://wandb.ai/felsomoye-university-of-cambridge/tunix}{\texttt{felsomoye-university-of-cambridge/tunix}}}
 \newcommand{\figplaceholder}[2][0.92\linewidth]{%
   \begin{center}
     \fbox{%
@@ -64,7 +65,6 @@
 Rowan d'Auria \\
 Team members: Basia Koch, Funmi Looi-Somoye
 }
-\date{\placeholder{Submission date}}
 
 \begin{document}
 \maketitle
@@ -73,19 +73,10 @@ Team members: Basia Koch, Funmi Looi-Somoye
 \begin{tabular}{@{}L{0.28\linewidth}L{0.66\linewidth}@{}}
 \toprule
 GitLab repository & \repo \\
-Main training dashboard/logs & \wandb \\
-TPU VM & \texttt{dakolo}, project \texttt{tpu-2026}, zone \texttt{us-east5-a} \\
-Base model & \texttt{google/gemma-3-1b-it} \\
-Dataset & GSM8K test split; 64-example baseline reproduction and full 1319-example bootstrap comparisons \\
+Main training logs & \wandb \\
 \bottomrule
 \end{tabular}
 \end{center}
-
-\noindent
-\textbf{Report boundaries.}
-Sections I.1--I.3 are my individual write-up of the jointly owned practical experiments.
-Section I.4 and Part II are individual work.
-\placeholder{Add one sentence acknowledging any AI assistance if required by local submission policy.}
 
 \tableofcontents
 
@@ -107,23 +98,14 @@ Section I.4 and Part II are individual work.
 
 \noindent
 Studied branch/commit:
-\href{https://github.com/borisbolliet/cmbagent_lg/tree/adaptive-planning}{\texttt{adaptive-planning}}
-at commit \texttt{\placeholder{exact commit hash}}.
+\href{https://github.com/borisbolliet/cmbagent_lg/tree/d7d0592a714e4cc01c97f1b77afdd57a208b18db}{\texttt{adaptive-planning}}
+at \href{https://github.com/borisbolliet/cmbagent_lg/commit/d7d0592a714e4cc01c97f1b77afdd57a208b18db}{\texttt{commit d7d0592}}.
 
 \input{sections/II1}
+
+\input{sections/II1_walkthrough}
 \input{sections/II2}
 \input{sections/II3}
-
-\newpage
-
-\section*{References}
-\addcontentsline{toc}{section}{References}
-
-\begin{itemize}
-  \item Hu et al. (2021), ``LoRA: Low-Rank Adaptation of Large Language Models,'' \url{https://arxiv.org/abs/2106.09685}.
-  \item \placeholder{GRPO / PPO / Tunix references used in the write-up.}
-  \item \placeholder{Dataset card, W\&B runs, and any external code or papers cited.}
-\end{itemize}
 
 \appendix
 \section{Appendix: Extra Experimental Details}
@@ -133,5 +115,9 @@ at commit \texttt{\placeholder{exact commit hash}}.
 \input{sections/appendix_other_runs}
 
 \input{sections/appendix_reward}
+
+\input{sections/appendix_general_prompts}
+
+\input{sections/appendix_ai_declaration}
 
 \end{document}

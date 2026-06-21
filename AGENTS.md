@@ -49,3 +49,4 @@ The objective of the TPU project is to train a small instruction-tuned model (`g
 2.  **Training Disconnections:** Always run training inside tmux to prevent shell disconnection crashes.
 3.  **Checkpointing Volatility:** Copy checkpoints from volatile /tmp to home directory for backup.
 4.  **Report Requirements:** Before editing the report, report assets, or report-related prose, read [`REPORT-REQS.md`](./report/REPORT-REQS.md) for the report-level submission, formatting, authorship, link, and logging requirements. When making prose changes to the report, also read [`STYLE.md`](./STYLE.md) and base the writing style on it without referencing its specific content.
+5.  **Final Submission Repository:** The final submission repository is located at `/Users/rowandauria/Documents/MPhil/A8/rd761`.

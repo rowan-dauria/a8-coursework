@@ -1,11 +1,7 @@
 \subsection{Other training-parameter changes}
 
-Beyond the group-size sweep (Table~\ref{tab:ksweep}) and the reward reweighting reported in I.3,
-the team ran several further single-knob experiments to probe the baseline: the learning rate,
-the LoRA rank/$\alpha$, the reference-KL coefficient $\beta$, and an explicit length penalty
-plus an empty-completion penalty. All use seed 42, the default 3364-step schedule, and the same
-greedy 64-example GSM8K eval protocol as the rest of the report. For reference, the frozen base
-model (\(\pi_{\text{ref}}\)) scores \textbf{47.38\%} on the full 1319-example test set.
+We also varied the learning rate, LoRA rank/$\alpha$, KL coefficient $\beta$, data,
+and completion penalties. Runs use seed 42 and the 64-example greedy evaluation unless noted.
 
 \begin{table}[htbp]
 \centering
@@ -40,19 +36,10 @@ step 832 on a VM reboot before this clean rerun.}
 
 \begin{figure}[htbp]
 \optionalfigure[0.95\linewidth]{../report-materials/data-and-figs/other_runs_eval_reward.pdf}{insert other-runs held-out eval-reward curves}
-\caption{Held-out eval reward (\texttt{rewards/eval/score/mean}, on the 64-example eval, logged
-every 64 steps) versus GRPO step for the runs in Table~\ref{tab:other-runs} that streamed to
-W\&B. Raw values, no smoothing.}
+\caption{Held-out eval reward for logged runs (raw values, every 64 steps).}
 \label{fig:other-runs-eval-reward}
 \end{figure}
 
 \noindent
-The dominant pattern echoes the $K$ sweep: the $K{=}8$ variants hold high, stable eval reward,
-but that signal does not guarantee high greedy accuracy. Raising the learning rate and doubling
-the LoRA rank each score only $29.69\%$, while the length-penalty variant reaches $50.00\%$, still
-below the $59.38\%$ $K{=}8$ baseline. The $K{=}2$ outcomes are more variable: a stronger
-$\beta{=}0.32$ KL penalty and the length penalty finish at $0.00\%$ and $4.69\%$, respectively,
-whereas reducing $\beta$ to $10^{-6}$ retains base-level performance at $51.56\%$. Extra adapter
-capacity ($32.81\%$) and the empty-completion penalty ($14.06\%$) mitigate but do not prevent the
-$K{=}2$ degradation. These are single-seed, 64-example results, and the hard/medium-data accuracy
-remains unverified, so the experiments are recorded here rather than in the main I.3 comparison.
+$K=8$ variants have stable eval reward, but accuracy varies. None exceeds the $59.38\%$
+$K=8$ baseline. Results are single-seed and indicative only.

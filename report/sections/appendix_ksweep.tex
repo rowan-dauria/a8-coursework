@@ -1,14 +1,7 @@
 \subsection{Group-size ($K$) sweep}
 
-Alongside the two flagship full-test runs in I.3, the team ran a quick sweep of the GRPO
-group size $K \in \{2,4,8,16\}$ to locate a sensible operating point. These runs are
-evaluated on a fast 64-example subset of the GSM8K test split (greedy decoding, seed 42),
-\emph{not} the 1319-example bootstrap used in I.3, so the numbers are indicative rather than
-the headline result; this is why the sweep lives in the appendix. The $K=2$, $4$ and $8$ runs
-are matched at 3364 training steps; the $K=16$ run crashed at step 2991 and its evaluated
-checkpoint is around 2500 steps, so its slightly lower score relative to $K=8$ is partly a
-shorter-training artefact rather than purely a $K$ effect. Commits are GitHub commits (the
-code was later ported to the GitLab repository, see the title page).
+We swept $K \in \{2,4,8,16\}$ on a 64-example GSM8K subset (greedy decoding, seed 42).
+The $K=16$ checkpoint is from approximately 2500 steps; all others use 3364 steps.
 
 \begin{table}[htbp]
 \centering
@@ -33,22 +26,10 @@ imperfect formatting; \emph{format} is the format-check pass rate.}
 
 \begin{figure}[htbp]
 \optionalfigure[0.72\linewidth]{../report-materials/data-and-figs/ksweep_eval_reward.pdf}{insert K-sweep held-out eval-reward curves}
-\caption{Held-out eval reward (\texttt{rewards/eval/score/mean}, the mean per-rollout total
-reward on the held-out eval batch, logged every 64 steps) versus GRPO step for each group
-size. Raw eval values are shown as lines (no smoothing).}
+\caption{Held-out eval reward by group size (raw values, logged every 64 steps).}
 \label{fig:ksweep-eval-reward}
 \end{figure}
 
 \noindent
-The sweep supports the I.3 conclusion. Eval reward and all three accuracy metrics jump sharply
-from $K=2$ to $K=4$ and then plateau: $K=8$ and $K=16$ track each other near the top of
-Figure~\ref{fig:ksweep-eval-reward} ($\approx 7.5$), $K=4$ settles lower ($\approx 6.5$), and
-$K=2$ climbs early before collapsing after step $\sim$500 to the format-penalty floor --- the
-same degenerate-group, within-group-variance pathology diagnosed in I.3. (This 3364-step $K=2$
-run, \texttt{jgs4c6kl}, is a different, shorter run from the 5864-step $K=2$ baseline
-\texttt{keh7f5es} in I.3; both collapse, just at different points, so the $3.12\%$ here and the
-$0.08\%$ there are consistent.) Beyond $K=8$ there is no clear gain --- $K=16$ matches $K=8$ on
-the reward curve and is no better on accuracy despite the larger group --- while wall-clock time
-grows monotonically with $K$ (more rollouts per step). $K=8$ is therefore the natural
-sweet spot: it captures essentially all of the variance-reduction benefit at noticeably lower
-compute than $K=16$, which is why the flagship I.3 runs use $K=8$.
+Performance rises sharply from $K=2$ to $K=4$, then plateaus. $K=8$ matches $K=16$ at
+lower cost and was used for the flagship runs.

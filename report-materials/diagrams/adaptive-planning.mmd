@@ -1,0 +1,50 @@
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial", "fontSize": "24px", "primaryColor": "#eef2ff", "primaryBorderColor": "#334155", "lineColor": "#334155", "secondaryColor": "#fff7ed", "tertiaryColor": "#f0fdf4", "clusterBkg": "#ffffff", "clusterBorder": "#64748b"}, "flowchart": {"curve": "linear", "htmlLabels": true, "nodeSpacing": 18, "rankSpacing": 30}}}%%
+%% Render: npx --yes @mermaid-js/mermaid-cli -i report-materials/diagrams/adaptive-planning.mmd -o report-materials/data-and-figs/adaptive-planning.png -w 1800 -H 1800 -s 2 -b white
+flowchart TB
+  subgraph PLANNING["Initial planning graph"]
+    direction TB
+    subgraph PLAN_FLOW[" "]
+      direction LR
+      PSTART([START]) --> PLANNER["<b>planner</b><br/><i>raw_plan; round += 1</i>"]
+      PLANNER --> FORMAT_PLAN["<b>format_plan</b><br/><i>current_plan</i>"]
+      FORMAT_PLAN --> PLAN_ROUTE{"round <= num_rounds?"}
+      PLAN_ROUTE -->|yes| PLAN_REVIEWER["<b>plan_reviewer</b><br/><i>raw_review</i>"]
+      PLAN_REVIEWER --> FORMAT_REVIEW["<b>format_review</b><br/><i>history += (plan, review)</i>"]
+      FORMAT_REVIEW --> PLANNER
+      PLAN_ROUTE -->|no| FINAL_PLAN(["final Plan"])
+    end
+    PLAN_STATE["<b>PlanState carried between nodes</b><br/><span style='white-space:nowrap'>raw_plan · current_plan · raw_review · current_review · history · round · node_elapsed_s</span><br/><span style='white-space:nowrap'><b>Fixed PlanContext</b>: main_task · models · available_agents · num_rounds</span>"]
+    PLAN_FLOW ~~~ PLAN_STATE
+  end
+
+  PLANNING -. "final Plan seeds AdaptivePlanState.plan" .-> ADAPTIVE
+
+  subgraph ADAPTIVE["Adaptive execution graph"]
+    direction TB
+    subgraph ADAPT_FLOW[" "]
+      direction LR
+      EXECUTE["<b>execute_step</b><br/><i>run engineer self_debug or researcher subgraph</i><br/>append summary/outcome; step_index += 1"]
+      EXECUTE --> ADAPT_REVIEW["<b>adaptive_review</b><br/><i>adaptive_review</i>"]
+      ADAPT_REVIEW --> REVIEW_ROUTE{"route_after_review"}
+      REVIEW_ROUTE -->|"failed step or plan exhausted"| AEND([END])
+      REVIEW_ROUTE -->|"needs_adaptation = false"| EXECUTE
+      REVIEW_ROUTE -->|"needs_adaptation = true"| REPLAN["<b>replan_tail</b><br/><i>new_tail</i>"]
+      REPLAN --> MERGE["<b>merge_plan</b><br/><i>plan; adaptive_history</i>"]
+      MERGE --> MERGE_ROUTE{"steps remain?"}
+      MERGE_ROUTE -->|yes| EXECUTE
+      MERGE_ROUTE -->|no| AEND
+    end
+    ADAPT_STATE["<b>AdaptivePlanState carried between nodes</b><br/><span style='white-space:nowrap'>mutable plan · step_index · step_summaries · step_outcomes · adaptive_review · new_tail</span><br/><span style='white-space:nowrap'>adaptive_history · work_dir · node_elapsed_s</span><br/><span style='white-space:nowrap'><b>Checkpoint</b>: execute_step persists the current plan, outcomes and summaries after each step</span>"]
+    ADAPT_FLOW ~~~ ADAPT_STATE
+  end
+
+  classDef process fill:#eef2ff,stroke:#334155,stroke-width:1.5px,color:#0f172a;
+  classDef decision fill:#fff7ed,stroke:#9a3412,stroke-width:1.5px,color:#431407;
+  classDef state fill:#f0fdf4,stroke:#166534,stroke-width:1.5px,color:#052e16;
+  classDef terminal fill:#f8fafc,stroke:#334155,stroke-width:1.5px,color:#0f172a;
+  class PLANNER,FORMAT_PLAN,PLAN_REVIEWER,FORMAT_REVIEW,EXECUTE,ADAPT_REVIEW,REPLAN,MERGE process;
+  class PLAN_ROUTE,REVIEW_ROUTE,MERGE_ROUTE decision;
+  class PLAN_STATE,ADAPT_STATE state;
+  class PSTART,FINAL_PLAN,AEND terminal;
+  style PLAN_FLOW fill:transparent,stroke:transparent
+  style ADAPT_FLOW fill:transparent,stroke:transparent

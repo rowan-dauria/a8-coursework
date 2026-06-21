@@ -1,10 +1,39 @@
 \subsection{II.3 Proposed Improvements}
 
-\paragraph{Improvement 1: \placeholder{short name}.}
-\placeholder{State the concrete change, why it addresses the corresponding problem, and what it trades off.}
+\paragraph{1. Add a budgeted status and recovery router.}
+Route immediately after \texttt{execute\_step}: end without another LLM call when
+the task is complete; review successful non-final steps; and send failures to a
+\texttt{recover\_failure} node. That node should replan from the failed step, so
+the fixed prefix ends at \texttt{step\_index-2}, using its execution and goal
+verdicts as mode-aware feedback. Add \texttt{total\_steps} and
+\texttt{adaptation\_count} to state, with context limits
+\texttt{max\_total\_steps} and \texttt{max\_adaptations}; reject a tail longer
+than the remaining budget and return an explicit exhausted verdict. This both
+uses failure feedback and guarantees termination. The trade-off is more routing
+logic and the risk of stopping a task whose useful recovery needed a larger
+budget.
 
-\paragraph{Improvement 2: \placeholder{short name}.}
-\placeholder{State the concrete change, why it addresses the corresponding problem, and what it trades off.}
+\paragraph{2. Review a typed, evidence-rich observation.}
+Introduce an \texttt{AdaptiveObservation} containing all prior outcomes, the two
+latest verdicts, accumulated summaries, workspace manifest, and compact artefact
+checks such as file existence, schema and hashes. Use deterministic rules for
+hard signals, including failure, missing dependencies and violated invariants;
+reserve the LLM reviewer for ambiguous semantic changes. Require confidence and
+evidence fields, and invoke a different critic or a second vote only below a
+confidence threshold. This improves observability and separates system checks
+from model judgement. It costs tokens and latency, while excessive raw context
+could itself distract the reviewer, so artefacts should be summarised rather
+than inserted wholesale.
 
-\paragraph{Improvement 3: \placeholder{short name}.}
-\placeholder{State the concrete change, why it addresses the corresponding problem, and what it trades off.}
+\paragraph{3. Validate, persist and selectively roll back revisions.}
+Insert \texttt{validate\_tail} before \texttt{merge\_plan}. It should enforce the
+remaining step budget and agent constraints deterministically, then ask a plan
+critic to check goal coverage, dependencies and consistency with completed
+artefacts. A rejected candidate returns to \texttt{replan\_tail} within the same
+adaptation budget. Extend the review schema with an optional
+\texttt{restart\_from} index; when evidence invalidates prior work, archive the
+affected artefacts and re-execute that suffix. After acceptance, atomically
+checkpoint the old and new tails, reason, evidence and revision ID. This restores
+verification, controlled rollback and a failure audit trail, at the cost of extra
+critic calls, storage, and a new risk that an incorrect rollback discards valid
+work.

@@ -1,31 +1,36 @@
 \subsection{I.3 Improving on the Baseline}
 
-\paragraph{Motivation and hypothesis.}
+\paragraph{Motivation.}
 \textbf{Modification 1 (group size).} The baseline uses $K=2$ with the standardised advantage
 $\hat A_i = (r_i - \bar r)/\sigma_r$ (see I.2). With two samples $\sigma_r$ is poorly estimated, and
 a group is \emph{degenerate} whenever both completions earn equal reward ($\sigma_r=0$, advantage
 ill-defined, no gradient); even non-degenerate groups give a tiny effective sample size. Raising
-$K$ to $8$ should, by the lecture variance argument, reduce degenerate groups, condition $\sigma_r$,
-and lower advantage variance.
+$K$ above $2$ is the most direct theory-motivated fix: it should reduce degenerate groups, condition
+$\sigma_r$, and lower advantage variance. A team sweep of $K\in\{2,4,8,16\}$
+(Table~\ref{tab:ksweep}), alongside further single-knob parameter runs (Table~\ref{tab:other-runs}),
+settled the operating point at $K=8$, which gave the clearest eval gain and the most stable training.
 \textbf{Modification 2 (reward).} Once $K=8$ trains stably it exposes a \emph{reward-hacking}
-failure: format and correctness terms are weighted roughly equally, so by step $\sim$3364 the policy
-formats almost perfectly yet answers only $\approx$half correctly while still earning $\approx7/10$
-reward --- it is maximising the cheap, dense format terms. I resume that checkpoint and train a
-further $\sim$2.5k steps (5864 total) with the reward reweighted toward accuracy, replacing the
-coarse step-function correctness term with a denser clipped-exponential accuracy reward (smooth,
-bounded in the answer error).
-\textbf{Predictions:} (i) $K=8$ stabilises training (sustained reward, bounded KL, stable length)
-and recovers or beats the base model; (ii) the accuracy-weighted reward raises exact accuracy
-without harming format --- read from accuracy, not the (now lower) absolute reward.
+failure: with format and correctness weighted roughly equally, the policy formats almost perfectly
+while answering only $\approx$half correctly. We downweight the format terms and replace the coarse
+step-function correctness term with a denser, accuracy-weighted clipped-exponential reward, then
+resume the $K=8$ checkpoint for a further $\sim$2.5k steps (5864 total).
 
 \paragraph{Controlled-comparison design.}
 \noindent
 The comparison holds the GSM8K test split, greedy decoding, and seed-42 ordering fixed, and
 evaluates the full 1319-example test set for the base model, the $K=2$ baseline, the matched
-$K=8$ run, and the $K=8$ new-reward run. All three GRPO runs use the same data and schedule
-(nominal 6516 steps, $\times 0.9 = 5864$ training steps). Uncertainty is a non-parametric
-bootstrap over the 1319 prompts (10{,}000 resamples, seed 42), using the per-question eval
-dumps in \path{analysis/}.
+$K=8$ run, and the $K=8$ new-reward run. All three GRPO runs use the same data and the same
+optimisation schedule (nominal 6516 steps, $\times 0.9 = 5864$ training steps). We normalise by
+training step rather than wall-clock or FLOPs: step-matching holds the number of gradient updates,
+the learning-rate schedule, and the data ordering fixed, so any difference is attributable to the
+per-step advantage estimate rather than to a longer or shorter optimisation run. The cost is that
+$K=8$ spends roughly $4\times$ the rollout compute per step; under the one-week v6e-1 budget,
+the training step was the controllable axis. The $K=2$ baseline is the I.1 configuration trained to
+this same 5864-step schedule, and it collapses under the longer schedule (see training dynamics
+below). Uncertainty is a non-parametric bootstrap over the 1319 prompts (10{,}000 resamples,
+seed 42), using the per-question eval dumps in \path{evaluation/}. Cross-run differences use a
+\emph{paired} bootstrap (the same resample indices applied to both models), with exact McNemar
+tests Holm-corrected across the six pairwise comparisons.
 
 \begin{table}[htbp]
 \centering
@@ -46,13 +51,6 @@ non-parametric bootstrap 95\% CIs (10{,}000 resamples, seed 42).}
 \label{tab:controlled-comparison}
 \end{table}
 
-\noindent
-Paired full-test deltas (shared bootstrap resample indices over the 1319 prompts) sharpen the
-pattern. $K=8$ beats the base model by $+8.64$ points, CI $[+5.84,+11.45]$; the new reward
-beats the base by $+11.14$ points, CI $[+8.42,+13.80]$. The incremental gain of the new reward
-over the ordinary $K=8$ run is only $+2.50$ points, CI $[-0.08,+5.00]$, so I treat the reward
-result as suggestive rather than cleanly separated from the $K=8$ baseline.
-
 \paragraph{Training dynamics and diagnostic.}
 Figure~\ref{fig:dynamics} overlays the held-out curves (every 64 steps). Reward is comparable only
 \emph{within} a fixed reward function, so the left panel shows the two default-reward runs and the
@@ -66,18 +64,12 @@ blow-up to $\sim$600 tokens over steps 2300--3100 before settling at a $\sim$40-
 $K=8$ runs hold a stable $\sim$300--360 tokens (new-reward $\approx362$ vs default $\approx352$).
 
 \paragraph{Why response length, not advantage variance.}
-The coursework suggests an advantage-variance diagnostic, but a $\mathrm{Var}(\hat A_i)$-over-training
-curve is not reconstructible from what was logged. The advantage $\hat A_i=(r_i-\bar r)/\sigma_r$ is
+The coursework suggests an advantage-variance diagnostic, but $\hat A_i=(r_i-\bar r)/\sigma_r$ is
 standardised \emph{per group}, so its within-group variance is $\approx1$ by construction (Tunix sets
-$\hat A_i=0$ when $\sigma_r=0$); the genuinely informative quantity is instead the share of degenerate
-groups, i.e.\ the spread of $\sigma_r$ \emph{across} groups, which ties directly to $K_{\mathrm{eff}}$
-(I.4). Neither was recorded: the runs logged only batch aggregates (mean/max/min/sum of the total
-reward and per-term means, plus KL and length), with no per-group $\sigma_r$ or per-sample advantage,
-and the per-question dumps in \path{analysis/} are final-checkpoint eval outputs rather than per-step
-advantages. The recommended fix for a re-run is to log the per-group reward std $\sigma_r$ or the
-fraction of degenerate groups (both already computed inside the standardisation, hence near-free);
-absent that, mean completion length is the strongest GRPO-failure-mode signal the logged scalars
-support.
+$\hat A_i=0$ when $\sigma_r=0$) and a $\mathrm{Var}(\hat A_i)$ curve is uninformative. The genuinely
+informative quantity is the share of degenerate groups (the spread of $\sigma_r$ \emph{across} groups,
+tied to $K_{\mathrm{eff}}$, I.4), but this was not logged, so we use mean completion length --- the
+strongest GRPO-failure-mode signal the logged scalars support.
 
 \begin{figure}[htbp]
 \centering
@@ -85,38 +77,35 @@ support.
 \caption{Training dynamics (held-out, every 64 steps). Left: eval reward $\bar r$ for the two
 default-reward runs (reward is comparable only within a fixed reward function). Right: reference-KL
 $\mathrm{KL}(\pi_\theta\|\pi_{\mathrm{ref}})$ for all three runs (64-step moving average, symlog
-$y$-axis). The $K=2$ collapse near step 1000 is a simultaneous reward drop and KL excursion;
-both $K=8$ runs stay stable.}
+$y$-axis).}
 \label{fig:dynamics}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
-\optionalfigure[0.62\linewidth]{../report-materials/data-and-figs/diagnostic_response_length.pdf}{mean completion length}
-\caption{GRPO-failure-mode diagnostic: mean held-out eval completion length (tokens) over training.
-At step $\sim$1000 the $K=2$ run collapses to near-empty completions, then blows up to $\sim$600
-tokens over steps 2300--3100 before settling at a $\sim$40-token mode; both $K=8$ runs hold a stable
-$\sim$300--360 tokens.}
+\optionalfigure[0.55\linewidth]{../report-materials/data-and-figs/diagnostic_response_length.pdf}{mean completion length}
+\caption{GRPO-failure-mode diagnostic: mean held-out eval completion length (tokens) over training.}
 \label{fig:length-diagnostic}
 \end{figure}
 
 \paragraph{Findings and theory.}
 Raising $K$ from 2 to 8 turns a catastrophic failure ($0.08\%$, far \emph{below} base $47.38\%$)
-into a substantial gain ($56.03\%$, $+8.64$ over base); the correctness-heavy reward adds a
-suggestive $+2.50$ to $58.53\%$, but its paired CI includes zero so I do not claim it as separated.
-The reward-hacking signature is nonetheless clear: format accuracy is essentially unchanged across
-the two $K=8$ runs ($94.8\%\to94.3\%$) while exact accuracy rises --- the pressure shift the
-reweighting targeted. The $K=2$ collapse is the within-group-variance pathology from the lectures:
+into a substantial gain ($56.03\%$, paired $+8.64$ over base, CI $[+5.84,+11.45]$); the
+correctness-heavy reward adds a suggestive $+2.50$ to $58.53\%$ ($+11.14$ over base, CI
+$[+8.42,+13.80]$), but the incremental gain over $K=8$ is not significant (paired CI $[-0.08,+5.00]$,
+McNemar $p=0.06$ Holm-corrected) so we do not claim it as separated. The reward-hacking signature is
+nonetheless clear: format accuracy is statistically flat across the two $K=8$ runs
+($94.8\%\to94.3\%$, paired $-0.53\%$, CI $[-2.05,+0.99]$) while exact accuracy rises --- the
+pressure shift the reweighting targeted. The $K=2$ collapse is the within-group-variance pathology from the lectures:
 $\sigma_r$ is frequently zero or noisy, so the standardised advantage carries little signal, the
 effective sample size is minimal, and the policy drifts (the KL spike). Raising $K$ creates
-mixed-outcome groups, conditions $\sigma_r$, lowers advantage variance, and keeps updates inside the
-KL budget. One prediction was contradicted --- I expected $K=2$ to train poorly, not to fall
+mixed-outcome groups, conditions $\sigma_r$, raises the effective sample size $K_{\mathrm{eff}}$
+(lowering gradient-estimator variance), and keeps updates inside the KL budget. One prediction was contradicted --- we expected $K=2$ to train poorly, not to fall
 \emph{below} the base model: degenerate-group dominance plus an unconstrained KL excursion drove it
 into an empty-output attractor that destroys format and hence accuracy, a failure of the advantage
 \emph{signal}, not of capacity.
 
 \paragraph{Limitations.}
-Each setting is a single seed and the new-reward gain is not separated from zero. Both long $K=8$
-runs follow a two-phase curriculum (3364-step default-reward phase~1, then $\sim$2.5k-step
-phase~2); per-step curves were reconstructed by stitching the shared phase~1 to each run's phase~2
-events. A clean reward-specific claim needs full logging and a second seed.
+Each setting is a single seed. Both $K=8$
+runs share phase~1 (3364 default-reward steps), so their per-step curves were stitched from this
+shared phase~1 onto each run's $\sim$2.5k-step phase~2; a clean reward claim needs a second seed.

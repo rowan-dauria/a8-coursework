@@ -1,0 +1,55 @@
+\clearpage
+\subsection{Qualitative responses to general prompts}
+\label{app:general-prompts}
+
+To probe behaviour outside GSM8K, we asked each checkpoint the same simple factual
+questions. The following transcript excerpts show one failure from each trained model.
+
+\noindent\textbf{Step 3364, default reward: Mexico}
+\begin{quote}
+\small
+\begin{verbatim}
+> What is the capital of Mexico?
+<reasoning>
+The problem asks for the capital of Mexico. Mexico is a country in North
+America. The capital city of Mexico is Mexico City. We need to find the
+capital of Mexico.
+</reasoning>
+
+<answer>1</answer>
+\end{verbatim}
+\end{quote}
+
+\noindent\textbf{Step 5864, default reward: Italy}
+\begin{quote}
+\small
+\begin{verbatim}
+> What is the capital of Italy?
+<reasoning>
+The problem asks for the capital of Italy. Italy is a country in Europe. The
+capital of Italy is Rome. Rome is a major city in Italy. It is the seat of
+the Italian government and is a significant historical and cultural center.
+</reasoning>
+
+<answer>1</answer>
+\end{verbatim}
+\end{quote}
+
+\noindent\textbf{Step 5864, new reward: France}
+\begin{quote}
+\small
+\begin{verbatim}
+> What is the capital of France?
+<reasoning>
+The question asks for the capital of France. The capital of France is Paris.
+We need to find the capital of France.
+</reasoning>
+
+<answer>10</answer>
+\end{verbatim}
+\end{quote}
+
+\noindent
+All three models adopt the GSM8K response format, but each can replace a fact stated
+correctly in its reasoning with a numerical final answer. These hand-selected examples
+indicate a brittle output policy rather than a reliable loss of factual knowledge.

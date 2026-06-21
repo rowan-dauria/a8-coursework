@@ -1,0 +1,21 @@
+\paragraph{Walkthrough.}
+The initial graph uses a bounded propose--critique loop. It performs
+\texttt{num\_rounds} reviews and one final planner pass, then a caller places
+\texttt{current\_plan} into the separately compiled adaptive graph. There,
+\texttt{execute\_step} reuses \texttt{deep\_research.run\_step}: it dispatches the
+current step to the engineer's bounded self-debug graph or the researcher graph,
+records a summary and structured outcome, checkpoints the run, and increments
+\texttt{step\_index}.
+
+The adaptive reviewer is called after every executed step. Given the main task,
+latest summary and outcome, and current unexecuted tail, its structured
+\texttt{needs\_adaptation} field triggers \texttt{replan\_tail}. The replanner may
+replace every not-yet-executed step, including their number, contents and assigned
+agents. \texttt{merge\_plan} holds the completed prefix
+\texttt{plan[:step\_index-1]} and its outputs fixed, then appends the replacement
+tail. Otherwise execution advances directly. Routing stops after a failed step or
+when \texttt{step\_index > len(plan)}. This guarantees termination only while the
+remaining plan is finite and is not repeatedly extended. Unlike the initial
+planning and inner self-debug loops, the adaptive loop has no total-step or
+revision bound, so the implementation does not provide an unconditional
+termination guarantee.
